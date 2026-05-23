@@ -221,12 +221,27 @@ export default function ApiKeyPage() {
 
   /* ── Create License Key (Edge Function) ── */
   const handleCreateKey = useCallback(async () => {
-    if (!newKeyName.trim()) return
+    const name = newKeyName.trim()
+    if (!name) return
     setIsCreating(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) {
         showToast('Please sign in first', 'error')
+        setIsCreating(false)
+        return
+      }
+
+      // ── Frontend duplicate-name guard ──
+      const { data: existing } = await supabase
+        .from('licenses')
+        .select('id')
+        .eq('user_id', session.user.id)
+        .eq('name', name)
+        .maybeSingle()
+
+      if (existing) {
+        showToast(`You already have a key named "${name}". Please use a different name.`, 'error')
         setIsCreating(false)
         return
       }
@@ -237,7 +252,7 @@ export default function ApiKeyPage() {
           'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name: newKeyName.trim() }),
+        body: JSON.stringify({ name }),
       })
 
       if (!res.ok) {
