@@ -83,6 +83,9 @@ export default function ApiKeyPage() {
   const [userBalance, setUserBalance] = useState<number>(0)
   const [balanceLoading, setBalanceLoading] = useState(false)
 
+  const [usageLogs, setUsageLogs] = useState<any[]>([])
+  const [usageLogsLoading, setUsageLogsLoading] = useState(false)
+
   const pageRef = useRef<HTMLDivElement>(null)
 
   /* ── Fetch Licenses ── */
@@ -125,13 +128,36 @@ export default function ApiKeyPage() {
     }
   }, [])
 
+  /* ── Fetch Usage Logs ── */
+  const fetchUsageLogs = useCallback(async () => {
+    setUsageLogsLoading(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      const { data, error } = await supabase
+        .from('usage_logs')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false })
+        .limit(50)
+      if (error) throw error
+      setUsageLogs(data || [])
+    } catch (err: any) {
+      console.error('Failed to load usage logs:', err.message)
+      setUsageLogs([])
+    } finally {
+      setUsageLogsLoading(false)
+    }
+  }, [])
+
   /* ── Initial load ── */
   useEffect(() => {
     if (isAuthenticated) {
       fetchLicenses()
       fetchUserBalance()
+      fetchUsageLogs()
     }
-  }, [isAuthenticated, fetchLicenses, fetchUserBalance])
+  }, [isAuthenticated, fetchLicenses, fetchUserBalance, fetchUsageLogs])
 
   /* ── Scroll-triggered reveals ── */
   useEffect(() => {
@@ -654,9 +680,9 @@ export default function ApiKeyPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-0 gsap-reveal"
                   style={{ marginBottom: '64px', border: '1px solid rgba(30, 30, 30, 0.06)' }}>
                   {[
-                    { label: 'TOTAL REQUESTS THIS MONTH', value: '--' },
-                    { label: 'AVERAGE DAILY', value: '--' },
-                    { label: 'SUCCESS RATE', value: '--' },
+                    { label: 'TOTAL REQUESTS', value: usageLogs.length.toString() },
+                    { label: 'SUCCESS RATE', value: usageLogs.length > 0 ? `${Math.round((usageLogs.filter(l => l.status === 'SUCCESS').length / usageLogs.length) * 100)}%` : '--' },
+                    { label: 'TOTAL COST', value: usageLogs.length > 0 ? `$${usageLogs.reduce((sum, l) => sum + (l.cost || 0), 0).toFixed(2)}` : '--' },
                   ].map((stat, i) => (
                     <div key={stat.label}
                       className="bg-white text-center"
@@ -674,24 +700,51 @@ export default function ApiKeyPage() {
                   ))}
                 </div>
 
-                <div className="bg-white gsap-reveal" style={{ padding: '48px', border: '1px solid rgba(30, 30, 30, 0.06)', marginBottom: '48px' }}>
-                  <h3 className="heading-feature text-[#1E1E1E]" style={{ marginBottom: '32px' }}>LAST 7 DAYS</h3>
-                  <div className="text-center" style={{ padding: '40px 24px' }}>
-                    <span className="text-body-sm text-[#999999]">No usage data available yet</span>
-                  </div>
-                </div>
-
                 <div className="gsap-reveal">
                   <h3 className="heading-feature text-[#1E1E1E]" style={{ marginBottom: '24px' }}>RECENT REQUESTS</h3>
                   <div style={{ border: '1px solid rgba(30, 30, 30, 0.06)' }}>
-                    <div className="hidden md:grid bg-[#F5F5F5]" style={{ gridTemplateColumns: '2fr 1.5fr 1fr 1fr 1fr', padding: '16px 32px', gap: '16px' }}>
-                      {['TIME', 'MODEL', 'STATUS', 'DURATION', 'TOKENS'].map((h) => (
+                    <div className="hidden md:grid bg-[#F5F5F5]" style={{ gridTemplateColumns: '2fr 1.5fr 1fr 1fr', padding: '16px 32px', gap: '16px' }}>
+                      {['TIME', 'MODEL', 'STATUS', 'COST'].map((h) => (
                         <span key={h} className="text-mono text-[#999999] text-[11px]">{h}</span>
                       ))}
                     </div>
-                    <div className="bg-white text-center" style={{ padding: '40px 24px' }}>
-                      <span className="text-body-sm text-[#999999]">No requests recorded yet</span>
-                    </div>
+                    {usageLogsLoading && (
+                      <div className="bg-white text-center" style={{ padding: '40px 24px' }}>
+                        <Loader size={24} className="animate-spin mx-auto text-[#1E1E1E]" />
+                      </div>
+                    )}
+                    {!usageLogsLoading && usageLogs.length === 0 && (
+                      <div className="bg-white text-center" style={{ padding: '40px 24px' }}>
+                        <span className="text-body-sm text-[#999999]">No requests recorded yet</span>
+                      </div>
+                    )}
+                    {!usageLogsLoading && usageLogs.length > 0 && usageLogs.map((log, i) => (
+                      <div
+                        key={log.id || i}
+                        className="grid bg-white md:items-center"
+                        style={{
+                          gridTemplateColumns: '1fr',
+                          padding: '16px 32px',
+                          gap: '8px',
+                          borderTop: '1px solid rgba(30, 30, 30, 0.06)',
+                        }}
+                      >
+                        <div className="md:hidden flex flex-wrap gap-2 mb-2">
+                          <span className="text-body-xs text-[#666666]">{new Date(log.created_at).toLocaleString()}</span>
+                          <span className="text-body-xs text-[#888888]">{log.model || '—'}</span>
+                          <span className="text-mono text-[11px]" style={{ color: log.status === 'SUCCESS' ? '#1E1E1E' : '#999999' }}>{log.status}</span>
+                          <span className="text-body-xs text-[#999999]">${(log.cost || 0).toFixed(2)}</span>
+                        </div>
+                        <div className="hidden md:contents">
+                          <span className="text-body-xs text-[#666666]">{new Date(log.created_at).toLocaleString()}</span>
+                          <span className="text-mono text-[12px] text-[#1E1E1E]">{log.model || '—'}</span>
+                          <span className="text-mono text-[11px]" style={{ color: log.status === 'SUCCESS' ? '#1E1E1E' : '#999999' }}>
+                            {log.status}
+                          </span>
+                          <span className="text-body-xs text-[#999999]">${(log.cost || 0).toFixed(2)}</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </motion.div>
