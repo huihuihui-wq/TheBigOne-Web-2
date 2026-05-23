@@ -30,14 +30,6 @@ interface License {
   created_at: string
 }
 
-interface UsageRecord {
-  time: string
-  model: string
-  status: string
-  duration: string
-  tokens: number
-}
-
 interface ToastState {
   message: string
   type: 'success' | 'error' | 'info'
@@ -51,16 +43,9 @@ interface ToastState {
 
 const FUNC_URL = 'https://fwusxlammxgowaxdubcm.supabase.co/functions/v1'
 
-const usageData: number[] = [120, 85, 140, 95, 180, 110, 160]
-const usageLabels: string[] = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-
-const recentRequests: UsageRecord[] = [
-  { time: '2025-12-07 14:32', model: 'tbo-realistic-v2', status: 'SUCCESS', duration: '1.2s', tokens: 2450 },
-  { time: '2025-12-07 14:28', model: 'tbo-anime-v1', status: 'SUCCESS', duration: '0.8s', tokens: 1800 },
-  { time: '2025-12-07 14:15', model: 'tbo-realistic-v2', status: 'SUCCESS', duration: '2.1s', tokens: 4200 },
-  { time: '2025-12-07 13:50', model: 'tbo-sketch-v1', status: 'FAILED', duration: '0.3s', tokens: 0 },
-  { time: '2025-12-07 13:45', model: 'tbo-realistic-v2', status: 'SUCCESS', duration: '1.5s', tokens: 3100 },
-]
+// NOTE: usageData, usageLabels, and recentRequests are now fetched dynamically
+// from Supabase. Placeholder constants removed to avoid confusion.
+// TODO: Replace empty states with real data once usage_logs table is created.
 
 /* ───────────────────────────────────────────
    Tab type
@@ -95,6 +80,8 @@ export default function ApiKeyPage() {
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [selectedTopUp, setSelectedTopUp] = useState<number | null>(null)
+  const [userBalance, setUserBalance] = useState<number>(0)
+  const [balanceLoading, setBalanceLoading] = useState(false)
 
   const pageRef = useRef<HTMLDivElement>(null)
 
@@ -117,12 +104,34 @@ export default function ApiKeyPage() {
     }
   }, [])
 
+  /* ── Fetch User Balance ── */
+  const fetchUserBalance = useCallback(async () => {
+    setBalanceLoading(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      const { data, error } = await supabase
+        .from('user_balances')
+        .select('balance')
+        .eq('user_id', session.user.id)
+        .maybeSingle()
+      if (error) throw error
+      setUserBalance(data?.balance || 0)
+    } catch (err: any) {
+      console.error('Failed to load balance:', err.message)
+      setUserBalance(0)
+    } finally {
+      setBalanceLoading(false)
+    }
+  }, [])
+
   /* ── Initial load ── */
   useEffect(() => {
     if (isAuthenticated) {
       fetchLicenses()
+      fetchUserBalance()
     }
-  }, [isAuthenticated, fetchLicenses])
+  }, [isAuthenticated, fetchLicenses, fetchUserBalance])
 
   /* ── Scroll-triggered reveals ── */
   useEffect(() => {
@@ -286,8 +295,8 @@ export default function ApiKeyPage() {
   }, [showToast, fetchLicenses])
 
   const activeKeysCount = licenses.filter((k) => k.status === 'active').length
-  const totalRequests = 12480
-  const balance = 47.50
+  const totalRequests = 0  // TODO: 接入真实请求统计表后替换
+  const balance = userBalance
 
   const tabs: { id: TabId; label: string }[] = [
     { id: 'keys', label: 'LICENSE KEYS' },
@@ -423,8 +432,8 @@ export default function ApiKeyPage() {
                   style={{ marginBottom: '64px', border: '1px solid rgba(30, 30, 30, 0.06)' }}>
                   {[
                     { label: 'ACTIVE KEYS', value: activeKeysCount.toString() },
-                    { label: 'TOTAL REQUESTS', value: totalRequests.toLocaleString() },
-                    { label: 'REMAINING BALANCE', value: `$${balance.toFixed(2)}` },
+                    { label: 'TOTAL REQUESTS', value: totalRequests > 0 ? totalRequests.toLocaleString() : '--' },
+                    { label: 'REMAINING BALANCE', value: balanceLoading ? '--' : `$${balance.toFixed(2)}` },
                   ].map((stat, i) => (
                     <div key={stat.label}
                       className="bg-white text-center"
@@ -610,12 +619,11 @@ export default function ApiKeyPage() {
                     <div>
                       <span className="text-mono text-[#999999] block" style={{ marginBottom: '12px' }}>PAYMENT METHOD</span>
                       <span className="font-body font-medium text-[16px] text-[#1E1E1E]">
-                        •••• •••• •••• 4242
+                        No payment method added
                       </span>
-                      <span className="text-body-xs text-[#999999] ml-3">Visa</span>
                     </div>
                     <button className="font-body font-medium text-sm uppercase tracking-[0.04em] text-[#666666] hover:text-[#1E1E1E] transition-colors duration-300">
-                      UPDATE
+                      ADD CARD
                     </button>
                   </div>
                 </div>
@@ -646,9 +654,9 @@ export default function ApiKeyPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-0 gsap-reveal"
                   style={{ marginBottom: '64px', border: '1px solid rgba(30, 30, 30, 0.06)' }}>
                   {[
-                    { label: 'TOTAL REQUESTS THIS MONTH', value: '1,248' },
-                    { label: 'AVERAGE DAILY', value: '178' },
-                    { label: 'SUCCESS RATE', value: '97.2%' },
+                    { label: 'TOTAL REQUESTS THIS MONTH', value: '--' },
+                    { label: 'AVERAGE DAILY', value: '--' },
+                    { label: 'SUCCESS RATE', value: '--' },
                   ].map((stat, i) => (
                     <div key={stat.label}
                       className="bg-white text-center"
@@ -668,26 +676,8 @@ export default function ApiKeyPage() {
 
                 <div className="bg-white gsap-reveal" style={{ padding: '48px', border: '1px solid rgba(30, 30, 30, 0.06)', marginBottom: '48px' }}>
                   <h3 className="heading-feature text-[#1E1E1E]" style={{ marginBottom: '32px' }}>LAST 7 DAYS</h3>
-                  <div className="flex items-end justify-between" style={{ height: '200px', gap: '16px' }}>
-                    {usageData.map((value, i) => {
-                      const maxVal = Math.max(...usageData)
-                      const height = (value / maxVal) * 100
-                      return (
-                        <div key={i} className="flex-1 flex flex-col items-center justify-end" style={{ height: '100%' }}>
-                          <span className="text-body-xs text-[#999999]" style={{ marginBottom: '8px' }}>{value}</span>
-                          <motion.div
-                            initial={{ height: 0 }}
-                            animate={{ height: `${height}%` }}
-                            transition={{ duration: 0.8, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
-                            className="w-full"
-                            style={{ backgroundColor: '#1E1E1E', maxWidth: '60px' }}
-                          />
-                          <span className="text-mono text-[#999999]" style={{ marginTop: '12px', fontSize: '11px' }}>
-                            {usageLabels[i]}
-                          </span>
-                        </div>
-                      )
-                    })}
+                  <div className="text-center" style={{ padding: '40px 24px' }}>
+                    <span className="text-body-sm text-[#999999]">No usage data available yet</span>
                   </div>
                 </div>
 
@@ -699,35 +689,9 @@ export default function ApiKeyPage() {
                         <span key={h} className="text-mono text-[#999999] text-[11px]">{h}</span>
                       ))}
                     </div>
-                    {recentRequests.map((req, i) => (
-                      <div
-                        key={i}
-                        className="grid bg-white md:items-center"
-                        style={{
-                          gridTemplateColumns: '1fr',
-                          padding: '16px 32px',
-                          gap: '8px',
-                          borderTop: '1px solid rgba(30, 30, 30, 0.06)',
-                        }}
-                      >
-                        <div className="md:hidden flex flex-wrap gap-2 mb-2">
-                          <span className="text-body-xs text-[#666666]">{req.time}</span>
-                          <span className="text-body-xs text-[#888888]">{req.model}</span>
-                          <span className="text-mono text-[11px]" style={{ color: req.status === 'SUCCESS' ? '#1E1E1E' : '#999999' }}>{req.status}</span>
-                          <span className="text-body-xs text-[#999999]">{req.duration}</span>
-                          <span className="text-body-xs text-[#999999]">{req.tokens.toLocaleString()} tokens</span>
-                        </div>
-                        <div className="hidden md:contents">
-                          <span className="text-body-xs text-[#666666]">{req.time}</span>
-                          <span className="text-mono text-[12px] text-[#1E1E1E]">{req.model}</span>
-                          <span className="text-mono text-[11px]" style={{ color: req.status === 'SUCCESS' ? '#1E1E1E' : '#999999' }}>
-                            {req.status}
-                          </span>
-                          <span className="text-body-xs text-[#999999]">{req.duration}</span>
-                          <span className="text-body-xs text-[#999999]">{req.tokens.toLocaleString()}</span>
-                        </div>
-                      </div>
-                    ))}
+                    <div className="bg-white text-center" style={{ padding: '40px 24px' }}>
+                      <span className="text-body-sm text-[#999999]">No requests recorded yet</span>
+                    </div>
                   </div>
                 </div>
               </motion.div>
