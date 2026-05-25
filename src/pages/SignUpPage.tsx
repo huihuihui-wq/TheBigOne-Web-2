@@ -135,7 +135,7 @@ export default function SignUpPage() {
       }
 
       if (data?.session) {
-        // Auto-confirmed: grant 500 welcome gold coins
+        // Auto-confirmed: grant 500 welcome gold coins and redirect to home
         try {
           await supabase.from('user_balances').upsert({
             user_id: data.session.user.id,
@@ -145,12 +145,15 @@ export default function SignUpPage() {
         } catch {
           // Ignore balance grant errors; user can still proceed
         }
-        await supabase.auth.signOut()
         setShowWelcome(true)
+        // Redirect after a short delay so the modal is visible
+        setTimeout(() => navigate('/'), 2500)
         return
       }
 
       setSignupSuccess('Account created. Please check your email to verify, then sign in.')
+      // Also redirect to login page after email-verification flow
+      setTimeout(() => navigate('/login'), 3000)
     },
     [fullName, email, password, confirmPassword, agreedToTerms]
   )
