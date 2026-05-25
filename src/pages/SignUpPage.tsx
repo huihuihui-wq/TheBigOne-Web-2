@@ -305,18 +305,6 @@ export default function SignUpPage() {
             <div className="flex-1" style={{ height: '1px', backgroundColor: 'rgba(30, 30, 30, 0.12)' }} />
           </motion.div>
 
-          {/* Form feedback */}
-          {formError && (
-            <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-4">
-              <span className="text-body-xs" style={{ color: '#CC0000' }}>{formError}</span>
-            </motion.div>
-          )}
-          {signupSuccess && (
-            <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-4">
-              <span className="text-body-xs" style={{ color: '#1E1E1E' }}>{signupSuccess}</span>
-            </motion.div>
-          )}
-
           {/* Registration Form */}
           <form onSubmit={handleSubmit}>
             {/* Full Name */}
@@ -545,7 +533,7 @@ export default function SignUpPage() {
             </motion.div>
 
             {/* Create Account Button */}
-            <motion.div variants={itemVariants} style={{ marginBottom: '32px' }}>
+            <motion.div variants={itemVariants} style={{ marginBottom: '16px' }}>
               <button
                 type="submit"
                 disabled={isLoading}
@@ -564,6 +552,21 @@ export default function SignUpPage() {
                 )}
               </button>
             </motion.div>
+
+            {/* Form feedback — placed right after button for visibility */}
+            {formError && (
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: '16px', padding: '12px 16px', backgroundColor: '#FDE8E8', border: '1px solid #F5A0A0' }}>
+                <span className="text-body-sm" style={{ color: '#C53030' }}>{formError}</span>
+              </motion.div>
+            )}
+            {signupSuccess && (
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: '16px', padding: '16px', backgroundColor: '#E6F7EF', border: '1px solid #3ECF8E' }}>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-body font-medium" style={{ color: '#1A7F4E' }}>🎉 Account Created!</span>
+                </div>
+                <span className="text-body-sm" style={{ color: '#1A7F4E' }}>{signupSuccess}</span>
+              </motion.div>
+            )}
           </form>
 
           {/* Bottom Sign In Link */}
