@@ -107,7 +107,7 @@ export default function SignInPage() {
   )
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: '#FBFBFB' }}>
+    <div className="min-h-screen flex" style={{ backgroundColor: '#FBFBFB', paddingTop: '72px' }}>
       {/* ═══════════════ LEFT SIDE (decorative) ═══════════════ */}
       <div
         className="hidden lg:flex lg:w-[40%] relative overflow-hidden items-center justify-center"

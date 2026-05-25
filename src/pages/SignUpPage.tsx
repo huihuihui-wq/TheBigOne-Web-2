@@ -159,7 +159,7 @@ export default function SignUpPage() {
   )
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: '#FBFBFB' }}>
+    <div className="min-h-screen flex" style={{ backgroundColor: '#FBFBFB', paddingTop: '72px' }}>
       {/* ═══════════════ LEFT SIDE (decorative) ═══════════════ */}
       <div
         className="hidden lg:flex lg:w-[40%] relative overflow-hidden items-center justify-center"
@@ -243,7 +243,7 @@ export default function SignUpPage() {
           initial="hidden"
           animate="visible"
           className="w-full"
-          style={{ maxWidth: '420px', padding: '0 24px', paddingTop: '80px', paddingBottom: '60px' }}
+          style={{ maxWidth: '420px', padding: '0 24px', paddingTop: '24px', paddingBottom: '60px' }}
         >
           {/* Bracket label */}
           <motion.span variants={itemVariants} className="label-bracket text-[#1E1E1E] block" style={{ marginBottom: '16px' }}>
