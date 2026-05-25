@@ -12,9 +12,18 @@ import {
   ArrowRight,
   Loader,
   AlertCircle,
+  X,
+  Calendar as CalendarIcon,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { isToday, isYesterday, subDays, isSameDay, format } from 'date-fns'
+import { Calendar } from '../components/ui/calendar'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '../components/ui/popover'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -85,6 +94,43 @@ export default function ApiKeyPage() {
 
   const [usageLogs, setUsageLogs] = useState<any[]>([])
   const [usageLogsLoading, setUsageLogsLoading] = useState(false)
+
+  /* ── Date filter for usage logs ── */
+  type DateFilterType = 'all' | 'today' | 'yesterday' | '7days' | '30days' | 'custom'
+  const [dateFilterType, setDateFilterType] = useState<DateFilterType>('all')
+  const [customDate, setCustomDate] = useState<Date | undefined>(undefined)
+
+  const getFilteredLogs = useCallback(() => {
+    if (!usageLogs.length) return []
+    const now = new Date()
+    return usageLogs.filter((log) => {
+      const logDate = new Date(log.created_at)
+      switch (dateFilterType) {
+        case 'today':
+          return isToday(logDate)
+        case 'yesterday':
+          return isYesterday(logDate)
+        case '7days':
+          return logDate >= subDays(now, 7)
+        case '30days':
+          return logDate >= subDays(now, 30)
+        case 'custom':
+          return customDate ? isSameDay(logDate, customDate) : true
+        default:
+          return true
+      }
+    })
+  }, [usageLogs, dateFilterType, customDate])
+
+  const filteredLogs = getFilteredLogs()
+
+  const dateFilterButtons: { key: DateFilterType; label: string }[] = [
+    { key: 'all', label: 'ALL' },
+    { key: 'today', label: 'TODAY' },
+    { key: 'yesterday', label: 'YESTERDAY' },
+    { key: '7days', label: '7 DAYS' },
+    { key: '30days', label: '30 DAYS' },
+  ]
 
   const pageRef = useRef<HTMLDivElement>(null)
 
@@ -709,7 +755,77 @@ export default function ApiKeyPage() {
                 </div>
 
                 <div className="gsap-reveal">
-                  <h3 className="heading-feature text-[#1E1E1E]" style={{ marginBottom: '24px' }}>RECENT REQUESTS</h3>
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4" style={{ marginBottom: '24px' }}>
+                    <h3 className="heading-feature text-[#1E1E1E]">RECENT REQUESTS</h3>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {dateFilterButtons.map((btn) => (
+                        <button
+                          key={btn.key}
+                          onClick={() => { setDateFilterType(btn.key); setCustomDate(undefined) }}
+                          className="text-mono text-[11px] transition-all duration-300"
+                          style={{
+                            padding: '8px 14px',
+                            backgroundColor: dateFilterType === btn.key ? '#1E1E1E' : '#FFFFFF',
+                            color: dateFilterType === btn.key ? '#FFFFFF' : '#666666',
+                            border: '1px solid rgba(30, 30, 30, 0.12)',
+                          }}
+                        >
+                          {btn.label}
+                        </button>
+                      ))}
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button
+                            className="flex items-center gap-1.5 text-mono text-[11px] transition-all duration-300"
+                            style={{
+                              padding: '8px 14px',
+                              backgroundColor: dateFilterType === 'custom' ? '#1E1E1E' : '#FFFFFF',
+                              color: dateFilterType === 'custom' ? '#FFFFFF' : '#666666',
+                              border: '1px solid rgba(30, 30, 30, 0.12)',
+                            }}
+                          >
+                            <CalendarIcon size={12} />
+                            {customDate ? format(customDate, 'MM/dd') : 'DATE'}
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="end">
+                          <Calendar
+                            mode="single"
+                            selected={customDate}
+                            onSelect={(date) => {
+                              setCustomDate(date)
+                              if (date) setDateFilterType('custom')
+                            }}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      {dateFilterType === 'custom' && customDate && (
+                        <button
+                          onClick={() => { setDateFilterType('all'); setCustomDate(undefined) }}
+                          className="flex items-center justify-center transition-all duration-300 hover:bg-[rgba(30,30,30,0.04)]"
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            border: '1px solid rgba(30, 30, 30, 0.12)',
+                          }}
+                          title="Clear filter"
+                        >
+                          <X size={12} className="text-[#666666]" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Filter status hint */}
+                  {dateFilterType === 'custom' && customDate && (
+                    <div className="flex items-center gap-2" style={{ marginBottom: '16px' }}>
+                      <span className="text-mono text-[11px] text-[#999999]">
+                        FILTERED BY {format(customDate, 'MM/dd/yyyy')} ({filteredLogs.length} requests)
+                      </span>
+                    </div>
+                  )}
+
                   <div style={{ border: '1px solid rgba(30, 30, 30, 0.06)' }}>
                     <div className="hidden md:grid bg-[#F5F5F5]" style={{ gridTemplateColumns: '2fr 1.5fr 1fr 1fr', padding: '16px 32px', gap: '16px' }}>
                       {['TIME', 'MODEL', 'STATUS', 'COST'].map((h) => (
@@ -726,7 +842,12 @@ export default function ApiKeyPage() {
                         <span className="text-body-sm text-[#999999]">No requests recorded yet</span>
                       </div>
                     )}
-                    {!usageLogsLoading && usageLogs.length > 0 && usageLogs.map((log, i) => (
+                    {!usageLogsLoading && usageLogs.length > 0 && filteredLogs.length === 0 && (
+                      <div className="bg-white text-center" style={{ padding: '40px 24px' }}>
+                        <span className="text-body-sm text-[#999999]">No requests found for the selected date range</span>
+                      </div>
+                    )}
+                    {!usageLogsLoading && filteredLogs.length > 0 && filteredLogs.map((log, i) => (
                       <div
                         key={log.id || i}
                         className="grid bg-white md:items-center"
