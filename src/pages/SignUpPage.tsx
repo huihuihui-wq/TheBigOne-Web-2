@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Eye, EyeOff, Loader } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import WelcomeModal from '../components/WelcomeModal'
+// WelcomeModal is now rendered globally in App.tsx
 
 /* ───────────────────────────────────────────
    Google "G" SVG Icon
@@ -75,8 +75,6 @@ export default function SignUpPage() {
   const [shakePassword, setShakePassword] = useState(false)
   const [formError, setFormError] = useState('')
   const [signupSuccess, setSignupSuccess] = useState('')
-  const [showWelcome, setShowWelcome] = useState(false)
-
   /* ── Google OAuth Sign Up ── */
   const handleGoogleSignUp = useCallback(async () => {
     setIsLoading(true)
@@ -137,22 +135,24 @@ export default function SignUpPage() {
       if (data?.session) {
         // Auto-confirmed: grant 500 welcome gold coins and redirect to home
         try {
-          await supabase.from('user_balances').upsert({
+          const { error: balanceError } = await supabase.from('user_balances').upsert({
             user_id: data.session.user.id,
             balance: 500,
             updated_at: new Date().toISOString(),
           }, { onConflict: 'user_id' })
-        } catch {
-          // Ignore balance grant errors; user can still proceed
+          if (balanceError) {
+            console.error('Failed to grant welcome coins:', balanceError.message)
+          }
+        } catch (err: any) {
+          console.error('Unexpected error granting coins:', err?.message || err)
         }
-        setShowWelcome(true)
-        // Redirect after a short delay so the modal is visible
-        setTimeout(() => navigate('/'), 2500)
+        // Mark welcome modal to show on home page
+        localStorage.setItem('showWelcome', 'true')
+        navigate('/')
         return
       }
 
       setSignupSuccess('Account created. Please check your email to verify, then sign in.')
-      // Also redirect to login page after email-verification flow
       setTimeout(() => navigate('/login'), 3000)
     },
     [fullName, email, password, confirmPassword, agreedToTerms]
@@ -586,12 +586,6 @@ export default function SignUpPage() {
         </motion.div>
       </div>
 
-      {/* Welcome Modal */}
-      <WelcomeModal
-        isOpen={showWelcome}
-        onClose={() => setShowWelcome(false)}
-        onStart={() => navigate('/login')}
-      />
     </div>
   )
 }

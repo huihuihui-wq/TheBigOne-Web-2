@@ -1,5 +1,5 @@
-import { HashRouter, Routes, Route } from 'react-router'
-import { useEffect, useRef } from 'react'
+import { HashRouter, Routes, Route, useNavigate } from 'react-router'
+import { useEffect, useRef, useState } from 'react'
 import Lenis from 'lenis'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -13,11 +13,14 @@ import SignUpPage from './pages/SignUpPage'
 import PricingPage from './pages/PricingPage'
 import GuidePage from './pages/GuidePage'
 import Footer from './sections/Footer'
+import WelcomeModal from './components/WelcomeModal'
 
 gsap.registerPlugin(ScrollTrigger)
 
 function AppContent() {
   const lenisRef = useRef<Lenis | null>(null)
+  const navigate = useNavigate()
+  const [showWelcome, setShowWelcome] = useState(false)
 
   useEffect(() => {
     const lenis = new Lenis({
@@ -39,6 +42,18 @@ function AppContent() {
     }
   }, [])
 
+  // Check for welcome modal flag (set after successful registration)
+  useEffect(() => {
+    if (localStorage.getItem('showWelcome') === 'true') {
+      setShowWelcome(true)
+    }
+  }, [])
+
+  const handleWelcomeClose = () => {
+    setShowWelcome(false)
+    localStorage.removeItem('showWelcome')
+  }
+
   return (
     <div>
       <Navbar lenisRef={lenisRef} />
@@ -51,6 +66,14 @@ function AppContent() {
         <Route path="/pricing" element={<PricingPage />} />
       </Routes>
       <Footer />
+      <WelcomeModal
+        isOpen={showWelcome}
+        onClose={handleWelcomeClose}
+        onStart={() => {
+          handleWelcomeClose()
+          navigate('/api-key')
+        }}
+      />
     </div>
   )
 }
