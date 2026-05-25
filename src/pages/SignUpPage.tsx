@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { useNavigate } from 'react-router'
+import { useNavigate, Link } from 'react-router'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Eye, EyeOff, Loader } from 'lucide-react'
 import { supabase } from '../lib/supabase'
@@ -148,6 +148,8 @@ export default function SignUpPage() {
         }
         // Mark welcome modal to show on home page
         localStorage.setItem('showWelcome', 'true')
+        // Notify other components (e.g. Navbar) that balance has changed
+        window.dispatchEvent(new Event('balance:updated'))
         navigate('/')
         return
       }
@@ -510,27 +512,19 @@ export default function SignUpPage() {
                   }}
                 >
                   I AGREE TO THE{' '}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      alert('Terms of Service coming soon')
-                    }}
+                  <Link
+                    to="/terms"
                     className="underline hover:text-[#666666] transition-colors duration-300"
                   >
                     TERMS OF SERVICE
-                  </button>{' '}
+                  </Link>{' '}
                   AND{' '}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      alert('Privacy Policy coming soon')
-                    }}
+                  <Link
+                    to="/privacy"
                     className="underline hover:text-[#666666] transition-colors duration-300"
                   >
                     PRIVACY POLICY
-                  </button>
+                  </Link>
                 </span>
               </label>
             </motion.div>

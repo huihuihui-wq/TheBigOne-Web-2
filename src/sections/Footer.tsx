@@ -4,22 +4,50 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
 gsap.registerPlugin(ScrollTrigger)
 
-const COLUMNS = [
+interface FooterLink {
+  label: string
+  href: string
+  external?: boolean
+}
+
+interface FooterColumn {
+  header: string
+  links: FooterLink[]
+}
+
+const COLUMNS: FooterColumn[] = [
   {
     header: 'PAGES',
-    links: ['Home', 'Api Key', 'Contact', 'FAQ'],
+    links: [
+      { label: 'Home', href: '#/' },
+      { label: 'Api Key', href: '#/api-key' },
+      { label: 'Pricing', href: '#/pricing' },
+      { label: 'Guide', href: '#/guide' },
+    ],
   },
   {
     header: 'SOCIALS',
-    links: ['Twitter', 'Instagram', 'Discord'],
+    links: [
+      { label: 'Twitter', href: 'https://twitter.com', external: true },
+      { label: 'Instagram', href: 'https://instagram.com', external: true },
+      { label: 'Discord', href: 'https://discord.com', external: true },
+    ],
   },
   {
     header: 'LEGAL',
-    links: ['Privacy Policy', 'Terms of Service', 'Cookie Policy'],
+    links: [
+      { label: 'Privacy Policy', href: '#/privacy' },
+      { label: 'Terms of Service', href: '#/terms' },
+      { label: 'Cookie Policy', href: '#/cookies' },
+    ],
   },
   {
     header: 'ACCOUNT',
-    links: ['Sign Up', 'Log In', 'Forgot Password'],
+    links: [
+      { label: 'Sign Up', href: '#/signup' },
+      { label: 'Log In', href: '#/login' },
+      { label: 'Contact', href: 'mailto:support@thebigone.ai' },
+    ],
   },
 ]
 
@@ -76,13 +104,15 @@ export default function Footer() {
               <div className="text-mono text-[#999999] mb-6">{col.header}</div>
               <ul className="flex flex-col gap-1">
                 {col.links.map((link) => (
-                  <li key={link}>
+                  <li key={link.label}>
                     <a
-                      href="#"
+                      href={link.href}
+                      target={link.external ? '_blank' : undefined}
+                      rel={link.external ? 'noopener noreferrer' : undefined}
                       className="text-body-sm text-[#666666] hover:text-[#1E1E1E] transition-colors duration-300"
                       style={{ lineHeight: '2.2' }}
                     >
-                      {link}
+                      {link.label}
                     </a>
                   </li>
                 ))}

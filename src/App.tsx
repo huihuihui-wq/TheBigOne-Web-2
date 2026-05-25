@@ -12,6 +12,9 @@ import SignInPage from './pages/SignInPage'
 import SignUpPage from './pages/SignUpPage'
 import PricingPage from './pages/PricingPage'
 import GuidePage from './pages/GuidePage'
+import TermsPage from './pages/TermsPage'
+import PrivacyPage from './pages/PrivacyPage'
+import CookiePolicyPage from './pages/CookiePolicyPage'
 import Footer from './sections/Footer'
 import WelcomeModal from './components/WelcomeModal'
 
@@ -65,6 +68,9 @@ function AppContent() {
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/guide" element={<GuidePage />} />
         <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/cookies" element={<CookiePolicyPage />} />
       </Routes>
       <Footer />
       <WelcomeModal

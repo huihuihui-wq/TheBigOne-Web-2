@@ -31,28 +31,39 @@ export default function Navbar({ lenisRef }: NavbarProps) {
   const isHomePage = location.pathname === '/'
   const isAuthPage = location.pathname === '/login' || location.pathname === '/signup'
 
-  useEffect(() => {
-    async function fetchBalance() {
-      if (!isAuthenticated) {
-        setUserBalance(0)
-        return
-      }
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!session) return
-        const { data, error } = await supabase
-          .from('user_balances')
-          .select('balance')
-          .eq('user_id', session.user.id)
-          .maybeSingle()
-        if (error) throw error
-        setUserBalance(data?.balance || 0)
-      } catch {
-        setUserBalance(0)
-      }
+  const fetchBalance = useCallback(async () => {
+    if (!isAuthenticated) {
+      setUserBalance(0)
+      return
     }
-    fetchBalance()
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      const { data, error } = await supabase
+        .from('user_balances')
+        .select('balance')
+        .eq('user_id', session.user.id)
+        .maybeSingle()
+      if (error) throw error
+      setUserBalance(data?.balance || 0)
+    } catch {
+      setUserBalance(0)
+    }
   }, [isAuthenticated])
+
+  useEffect(() => {
+    fetchBalance()
+  }, [fetchBalance])
+
+  // Listen for balance updates from other components (e.g. after sign-up coin grant)
+  useEffect(() => {
+    const handleBalanceUpdate = () => {
+      // Small delay to ensure Supabase upsert has completed
+      setTimeout(fetchBalance, 300)
+    }
+    window.addEventListener('balance:updated', handleBalanceUpdate)
+    return () => window.removeEventListener('balance:updated', handleBalanceUpdate)
+  }, [fetchBalance])
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 100)
