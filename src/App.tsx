@@ -1,4 +1,4 @@
-import { HashRouter, Routes, Route, useNavigate } from 'react-router'
+import { HashRouter, Routes, Route, useNavigate, useLocation } from 'react-router'
 import { useEffect, useRef, useState } from 'react'
 import Lenis from 'lenis'
 import { gsap } from 'gsap'
@@ -20,6 +20,7 @@ gsap.registerPlugin(ScrollTrigger)
 function AppContent() {
   const lenisRef = useRef<Lenis | null>(null)
   const navigate = useNavigate()
+  const location = useLocation()
   const [showWelcome, setShowWelcome] = useState(false)
 
   useEffect(() => {
@@ -42,12 +43,12 @@ function AppContent() {
     }
   }, [])
 
-  // Check for welcome modal flag (set after successful registration)
+  // Check for welcome modal flag on route change (set after successful registration)
   useEffect(() => {
     if (localStorage.getItem('showWelcome') === 'true') {
       setShowWelcome(true)
     }
-  }, [])
+  }, [location.pathname])
 
   const handleWelcomeClose = () => {
     setShowWelcome(false)
