@@ -459,7 +459,7 @@ export default function ApiKeyPage() {
                   {[
                     { label: 'ACTIVE KEYS', value: activeKeysCount.toString() },
                     { label: 'TOTAL REQUESTS', value: totalRequests > 0 ? totalRequests.toLocaleString() : '--' },
-                    { label: 'REMAINING BALANCE', value: balanceLoading ? '--' : `$${balance.toFixed(2)}` },
+                    { label: 'REMAINING BALANCE', value: balanceLoading ? '--' : balance.toFixed(2), isGold: true },
                   ].map((stat, i) => (
                     <div key={stat.label}
                       className="bg-white text-center"
@@ -470,8 +470,13 @@ export default function ApiKeyPage() {
                       <span className="text-mono text-[#999999] block" style={{ marginBottom: '8px' }}>
                         {stat.label}
                       </span>
-                      <span className="font-body font-medium text-[32px] text-[#1E1E1E] leading-tight">
-                        {stat.value}
+                      <span className="font-body font-medium text-[32px] text-[#1E1E1E] leading-tight inline-flex items-center gap-2 justify-center">
+                        {'isGold' in stat && stat.isGold ? (
+                          <>
+                            <img src="/gold.png" alt="gold" className="inline-block" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
+                            {stat.value}
+                          </>
+                        ) : stat.value}
                       </span>
                     </div>
                   ))}
@@ -612,9 +617,12 @@ export default function ApiKeyPage() {
               >
                 <div className="bg-white gsap-reveal" style={{ padding: '64px', border: '1px solid rgba(30, 30, 30, 0.06)', marginBottom: '48px' }}>
                   <span className="text-mono text-[#999999] block" style={{ marginBottom: '16px' }}>AVAILABLE BALANCE</span>
-                  <span className="font-display font-extralight text-[#1E1E1E]" style={{ fontSize: 'clamp(48px, 8vw, 64px)', lineHeight: 1.1, letterSpacing: '0.04em' }}>
-                    ${balance.toFixed(2)}
-                  </span>
+                  <div className="flex items-center gap-4">
+                    <img src="/gold.png" alt="gold" style={{ width: '56px', height: '56px', objectFit: 'contain' }} />
+                    <span className="font-display font-extralight text-[#1E1E1E]" style={{ fontSize: 'clamp(48px, 8vw, 64px)', lineHeight: 1.1, letterSpacing: '0.04em' }}>
+                      {balance.toFixed(2)}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="gsap-reveal" style={{ marginBottom: '48px' }}>

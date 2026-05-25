@@ -11,6 +11,7 @@ import ApiKeyPage from './pages/ApiKeyPage'
 import SignInPage from './pages/SignInPage'
 import SignUpPage from './pages/SignUpPage'
 import PricingPage from './pages/PricingPage'
+import GuidePage from './pages/GuidePage'
 import Footer from './sections/Footer'
 
 gsap.registerPlugin(ScrollTrigger)
@@ -46,6 +47,7 @@ function AppContent() {
         <Route path="/api-key" element={<ApiKeyPage />} />
         <Route path="/login" element={<SignInPage />} />
         <Route path="/signup" element={<SignUpPage />} />
+        <Route path="/guide" element={<GuidePage />} />
         <Route path="/pricing" element={<PricingPage />} />
       </Routes>
       <Footer />

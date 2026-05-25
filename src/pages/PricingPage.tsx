@@ -14,66 +14,72 @@ const PLANS = [
     priceYearly: 0,
     icon: Sparkles,
     popular: false,
-    cta: 'GET STARTED',
+    cta: 'START FREE TRIAL',
     features: [
-      '50 images / month',
-      'Standard resolution (512×512)',
-      '3 AI models',
-      'Community support',
-      'Basic inpainting',
+      '500 coins / month (~10-20 images, depending on model)',
+      'All 12 AI models (including GPT Image 2 & NanoBanana)',
+      'Up to 4K resolution',
+      'Image editing, inpainting & upscaling',
+      'Character upscale & Anime upscale',
+      'Photoshop plugin support',
+      'Local history: unlimited (device only, not cloud)',
       'Standard generation speed',
     ],
     unavailable: [
       'Commercial license',
-      'API access',
       'Priority queue',
-      'Custom models',
+      'Figma / Blender / Premiere plugins',
+      'Batch processing',
     ],
   },
   {
     id: 'pro',
     name: 'PRO',
     subtitle: 'For professional creators',
-    priceMonthly: 19,
-    priceYearly: 15,
+    priceMonthly: 15,
+    priceYearly: 180,
     icon: Zap,
     popular: true,
-    cta: 'START FREE TRIAL',
+    cta: 'GET STARTED',
     features: [
-      '500 images / month',
-      'Up to 2K resolution (2048×2048)',
-      'All 12 AI models',
+      '15,000 coins / month (~250 images)',
+      'All 12 AI models (including GPT Image 2 & NanoBanana)',
+      'Up to 4K resolution',
+      'Advanced editing, inpainting & outpainting',
+      'Character upscale & Anime upscale',
+      'Photoshop + Figma / Blender / Premiere early access',
+      'Local history: unlimited (device only, not cloud)',
+      '2× accelerated generation',
       'Commercial license',
-      'API access (1,000 calls/mo)',
-      'Advanced inpainting & editing',
-      '2× faster generation',
       'Email support',
     ],
     unavailable: [
-      'Custom model training',
+      'Team management',
       'White-label solution',
+      'Dedicated account manager',
     ],
   },
   {
-    id: 'enterprise',
-    name: 'ENTERPRISE',
+    id: 'studio',
+    name: 'STUDIO',
     subtitle: 'For teams and studios',
-    priceMonthly: 49,
-    priceYearly: 39,
+    priceMonthly: 39,
+    priceYearly: 468,
     icon: Crown,
     popular: false,
-    cta: 'CONTACT SALES',
+    cta: 'GET STARTED',
     features: [
-      'Unlimited generations',
-      'Up to 4K resolution (4096×4096)',
-      'All 20+ AI models',
+      '40,000 coins / month (~650 images)',
+      'All 12 AI models (including GPT Image 2 & NanoBanana)',
+      'Up to 4K resolution',
+      'Full editing suite & batch processing',
+      'Character upscale & Anime upscale',
+      'Full plugin ecosystem: Photoshop / Figma / Blender / Premiere',
+      'Local history: unlimited (device only, not cloud)',
+      '4× accelerated + priority queue',
       'Full commercial license',
-      'Unlimited API access',
-      'Custom model training',
-      '4× faster + priority queue',
-      'Dedicated account manager',
-      'SSO & team management',
-      'White-label option',
+      'SSO & team management (coming soon)',
+      'Priority support',
     ],
     unavailable: [],
   },
@@ -86,15 +92,15 @@ const FAQ_ITEMS = [
   },
   {
     q: 'What payment methods do you accept?',
-    a: 'We accept all major credit cards (Visa, Mastercard, American Express), PayPal, and bank transfers for Enterprise plans. All transactions are processed securely via Stripe.',
+    a: 'We accept all major credit cards (Visa, Mastercard, American Express), PayPal, and bank transfers for Studio plans. All transactions are processed securely via Stripe.',
   },
   {
     q: 'Is there a free trial for paid plans?',
     a: 'Yes. The Pro plan includes a 7-day free trial with full access to all features. No credit card required to start. You can cancel anytime during the trial without being charged.',
   },
   {
-    q: 'What happens if I exceed my monthly image limit?',
-    a: 'You can purchase additional image packs at $5 per 100 images, or upgrade to a higher plan instantly. Unused images do not roll over to the next month.',
+    q: 'What happens if I exceed my monthly coin limit?',
+    a: 'You can purchase additional coin packs at any time, or upgrade to a higher plan instantly. Unused coins do not roll over to the next month.',
   },
   {
     q: 'Do you offer refunds?',
@@ -102,7 +108,7 @@ const FAQ_ITEMS = [
   },
   {
     q: 'Can I use generated images commercially?',
-    a: 'Pro and Enterprise plans include a full commercial license. Free plan images are for personal use only. Enterprise plans also include indemnification coverage.',
+    a: 'Pro and Studio plans include a full commercial license. Free plan images are for personal use only. Studio plans also include indemnification coverage.',
   },
 ]
 
@@ -138,12 +144,12 @@ export default function PricingPage() {
       window.location.href = '/#/signup'
       return
     }
-    if (planId === 'enterprise') {
-      window.open('mailto:sales@thebigone.ai?subject=Enterprise Plan Inquiry', '_blank')
+    if (planId === 'studio') {
+      window.open('mailto:sales@thebigone.ai?subject=Studio Plan Inquiry', '_blank')
       return
     }
     // Simulate Stripe checkout for Pro
-    alert(`Redirecting to Stripe Checkout...\n\nPlan: PRO (${isYearly ? 'Yearly' : 'Monthly'})\nPrice: $${isYearly ? '15' : '19'}/month\n\n(In production, this would redirect to Stripe Checkout)`)
+    alert(`Redirecting to Stripe Checkout...\n\nPlan: PRO (${isYearly ? 'Yearly' : 'Monthly'})\nPrice: $${isYearly ? '180' : '15'}/month\n\n(In production, this would redirect to Stripe Checkout)`)
   }
 
   return (
@@ -199,6 +205,7 @@ export default function PricingPage() {
           {PLANS.map((plan) => {
             const Icon = plan.icon
             const price = isYearly ? plan.priceYearly : plan.priceMonthly
+            const monthlyEquiv = plan.priceYearly > 0 ? Math.round(plan.priceYearly / 12) : 0
             return (
               <div
                 key={plan.id}
@@ -235,15 +242,15 @@ export default function PricingPage() {
                   <div className="mb-8">
                     <div className="flex items-baseline gap-1">
                       <span className={`font-display text-[48px] font-extralight ${plan.popular ? 'text-white' : 'text-[#1E1E1E]'}`}>
-                        ${price}
+                        ${isYearly && plan.priceYearly > 0 ? monthlyEquiv : price}
                       </span>
                       <span className={`font-body text-sm ${plan.popular ? 'text-[#AAAAAA]' : 'text-[#999999]'}`}>
                         /month
                       </span>
                     </div>
-                    {isYearly && price > 0 && (
+                    {isYearly && plan.priceYearly > 0 && (
                       <p className={`text-[11px] font-body mt-1 ${plan.popular ? 'text-[#888888]' : 'text-[#999999]'}`}>
-                        Billed annually (${price * 12}/year)
+                        Billed annually (${plan.priceYearly}/year)
                       </p>
                     )}
                   </div>
@@ -315,29 +322,33 @@ export default function PricingPage() {
                   <th className="text-left font-display text-[11px] uppercase tracking-[0.1em] text-[#999999] py-4 px-4">Feature</th>
                   <th className="text-center font-display text-[11px] uppercase tracking-[0.1em] text-[#999999] py-4 px-4">Free</th>
                   <th className="text-center font-display text-[11px] uppercase tracking-[0.1em] text-[#999999] py-4 px-4 bg-[rgba(30,30,30,0.02)]">Pro</th>
-                  <th className="text-center font-display text-[11px] uppercase tracking-[0.1em] text-[#999999] py-4 px-4">Enterprise</th>
+                  <th className="text-center font-display text-[11px] uppercase tracking-[0.1em] text-[#999999] py-4 px-4">Studio</th>
                 </tr>
               </thead>
               <tbody>
                 {[
-                  ['Monthly Generations', '50', '500', 'Unlimited'],
-                  ['Max Resolution', '512×512', '2048×2048', '4096×4096'],
-                  ['AI Models', '3', '12', '20+'],
+                  ['Monthly Coins', '500', '15,000', '40,000'],
+                  ['Approx. Images', '~10-20', '~250', '~650'],
+                  ['AI Models', '12', '12', '12'],
+                  ['Max Resolution', 'Up to 4K', 'Up to 4K', 'Up to 4K'],
                   ['Commercial License', '—', '✓', '✓'],
-                  ['API Access', '—', '1,000 calls', 'Unlimited'],
-                  ['Inpainting & Editing', 'Basic', 'Advanced', 'Advanced'],
-                  ['Generation Speed', 'Standard', '2× Faster', '4× + Priority'],
-                  ['Custom Model Training', '—', '—', '✓'],
-                  ['Team Management', '—', '—', '✓'],
-                  ['SSO / SAML', '—', '—', '✓'],
-                  ['White Label', '—', '—', '✓'],
-                  ['Support', 'Community', 'Email', 'Dedicated Manager'],
-                ].map(([feature, free, pro, enterprise], i) => (
+                  ['Image Editing & Inpainting', 'Basic', 'Advanced + Outpainting', 'Full Suite'],
+                  ['Upscaling', 'Character + Anime', 'Character + Anime', 'Character + Anime'],
+                  ['Batch Processing', '—', '—', '✓'],
+                  ['Generation Speed', 'Standard', '2× Accelerated', '4× + Priority'],
+                  ['Photoshop Plugin', '✓', '✓', '✓'],
+                  ['Figma / Blender / Premiere', '—', 'Early Access', '✓'],
+                  ['Local History', 'Unlimited', 'Unlimited', 'Unlimited'],
+                  ['Cloud History', '—', '—', '—'],
+                  ['Team Management', '—', '—', 'Coming Soon'],
+                  ['SSO / SAML', '—', '—', 'Coming Soon'],
+                  ['Support', 'Community', 'Email', 'Priority'],
+                ].map(([feature, free, pro, studio], i) => (
                   <tr key={feature} className={`border-b border-[rgba(30,30,30,0.06)] ${i % 2 === 0 ? 'bg-[rgba(30,30,30,0.01)]' : ''}`}>
                     <td className="py-4 px-4 text-[13px] font-body text-[#555555]">{feature}</td>
                     <td className="text-center py-4 px-4 text-[13px] font-body text-[#999999]">{free}</td>
                     <td className="text-center py-4 px-4 text-[13px] font-body text-[#1E1E1E] bg-[rgba(30,30,30,0.02)]">{pro}</td>
-                    <td className="text-center py-4 px-4 text-[13px] font-body text-[#1E1E1E]">{enterprise}</td>
+                    <td className="text-center py-4 px-4 text-[13px] font-body text-[#1E1E1E]">{studio}</td>
                   </tr>
                 ))}
               </tbody>
