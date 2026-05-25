@@ -110,8 +110,13 @@ export default function Navbar({ lenisRef }: NavbarProps) {
           {/* Logo */}
           <button
             onClick={handleLogoClick}
-            className="text-nav text-[#1E1E1E] tracking-[0.08em]"
+            className="flex items-center gap-2 text-nav text-[#1E1E1E] tracking-[0.08em]"
           >
+            <img
+              src="/logo.png"
+              alt="TheBigOne"
+              style={{ width: '32px', height: '32px', objectFit: 'contain' }}
+            />
             THEBIGONE
           </button>
 
