@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Eye, EyeOff, Loader } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import WelcomeModal from '../components/WelcomeModal'
 
 /* ───────────────────────────────────────────
    Google "G" SVG Icon
@@ -74,6 +75,7 @@ export default function SignUpPage() {
   const [shakePassword, setShakePassword] = useState(false)
   const [formError, setFormError] = useState('')
   const [signupSuccess, setSignupSuccess] = useState('')
+  const [showWelcome, setShowWelcome] = useState(false)
 
   /* ── Google OAuth Sign Up ── */
   const handleGoogleSignUp = useCallback(async () => {
@@ -133,9 +135,18 @@ export default function SignUpPage() {
       }
 
       if (data?.session) {
-        // Auto-confirmed; sign out to force login
+        // Auto-confirmed: grant 500 welcome gold coins
+        try {
+          await supabase.from('user_balances').upsert({
+            user_id: data.session.user.id,
+            balance: 500,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'user_id' })
+        } catch {
+          // Ignore balance grant errors; user can still proceed
+        }
         await supabase.auth.signOut()
-        setSignupSuccess('Account created successfully. Please sign in.')
+        setShowWelcome(true)
         return
       }
 
@@ -568,6 +579,13 @@ export default function SignUpPage() {
           </motion.div>
         </motion.div>
       </div>
+
+      {/* Welcome Modal */}
+      <WelcomeModal
+        isOpen={showWelcome}
+        onClose={() => setShowWelcome(false)}
+        onStart={() => navigate('/login')}
+      />
     </div>
   )
 }
