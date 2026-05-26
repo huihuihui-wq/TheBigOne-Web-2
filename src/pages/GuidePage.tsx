@@ -191,14 +191,6 @@ export default function GuidePage() {
   useEffect(() => {
     const ctx = gsap.context(() => {
       gsap.fromTo(
-        '.guide-download',
-        { opacity: 0, y: 40 },
-        {
-          opacity: 1, y: 0, duration: 0.8, ease: 'power4.out',
-          scrollTrigger: { trigger: sectionRef.current, start: 'top 80%' },
-        }
-      )
-      gsap.fromTo(
         '.guide-hero',
         { opacity: 0, y: 40 },
         {
@@ -236,42 +228,6 @@ export default function GuidePage() {
 
   return (
     <main ref={sectionRef} className="w-full" style={{ background: '#FBFBFB', paddingTop: '72px' }}>
-      {/* Download Plugin */}
-      <section className="container-main pt-20 lg:pt-28 pb-10">
-        <div className="guide-download" style={{ opacity: 0 }}>
-          <div className="label-bracket text-[#1E1E1E] mb-5">[DOWNLOAD]</div>
-          <h1 className="text-display-section text-[#1E1E1E] mb-4">
-            Plugin Installer
-          </h1>
-          <p className="text-body text-[#666666] max-w-[560px] mb-8">
-            Download the latest UXP plugin for Adobe Photoshop and start creating with AI.
-          </p>
-          <a
-            href="/com.huihuihui_4.uxp_PS.ccx"
-            download
-            className="inline-flex items-center gap-4 bg-white border border-[rgba(30,30,30,0.1)] hover:border-[rgba(30,30,30,0.3)] transition-all duration-300 group"
-            style={{ padding: '20px 24px' }}
-          >
-            <div className="w-12 h-12 flex items-center justify-center bg-[#1E1E1E] text-white group-hover:bg-black transition-colors duration-300">
-              <Download size={20} strokeWidth={1.5} />
-            </div>
-            <div>
-              <div className="font-display text-sm uppercase tracking-[0.04em] text-[#1E1E1E]">
-                com.huihuihui_4.uxp_PS.ccx
-              </div>
-              <div className="text-mono text-[11px] text-[#999999] tracking-[0.04em] mt-1">
-                UXP PLUGIN • 1.5 MB
-              </div>
-            </div>
-            <div className="ml-4 text-[#1E1E1E] group-hover:translate-x-1 transition-transform duration-300">
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M4 10H16M16 10L11 5M16 10L11 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square" />
-              </svg>
-            </div>
-          </a>
-        </div>
-      </section>
-
       {/* Hero */}
       <section className="container-main py-20 lg:py-28">
         <div className="guide-hero" style={{ opacity: 0 }}>

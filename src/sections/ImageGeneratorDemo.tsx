@@ -1,21 +1,31 @@
 import { useEffect, useRef, useState } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { Wand2, Image, Layers, Sparkles, RefreshCw, Download, Maximize2 } from 'lucide-react'
+import { Wand2, Image, Layers, Sparkles, RefreshCw, Download, Maximize2, AlertCircle, Coins, Wallet } from 'lucide-react'
+import { supabase } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
 
 gsap.registerPlugin(ScrollTrigger)
 
+/* ───────────────────────────────────────────
+   Models & Config
+   ─────────────────────────────────────────── */
+
 const MODELS = [
-  { id: 'flux-2-pro', name: 'FLUX 2 PRO', desc: 'Highest quality' },
-  { id: 'seedream', name: 'SEEDREAM 4.5', desc: 'Fast generation' },
-  { id: 'nano', name: 'NANO BANANA', desc: 'Lightweight' },
+  { id: 'gpt_image_2', name: 'GPT IMAGE 2', desc: 'Highest quality' },
+  { id: 'nanobanana', name: 'NANO BANANA', desc: 'Fast generation' },
+  { id: 'flux_ultra', name: 'FLUX ULTRA', desc: 'Lightweight' },
 ]
 
+// TODO: Replace with actual BizyAir endpoint for each model if needed.
+// The proxy server will forward to this URL.
+const BIZYAIR_GENERATE_URL = 'https://api.bizyair.cn/v1/images/generations'
+
 const ASPECT_RATIOS = [
-  { id: '1:1', label: '1:1' },
-  { id: '3:2', label: '3:2' },
-  { id: '2:3', label: '2:3' },
-  { id: '16:9', label: '16:9' },
+  { id: '1:1', label: '1:1', width: 1024, height: 1024 },
+  { id: '3:2', label: '3:2', width: 1280, height: 854 },
+  { id: '2:3', label: '2:3', width: 854, height: 1280 },
+  { id: '16:9', label: '16:9', width: 1280, height: 720 },
 ]
 
 const PRESETS = [
@@ -25,12 +35,9 @@ const PRESETS = [
   'Futuristic interface design, holographic UI elements, dark background',
 ]
 
-const SAMPLE_IMAGES = [
-  { id: 1, src: '/gen-text2image.jpg', prompt: 'Text to Image', model: 'FLUX 2 PRO' },
-  { id: 2, src: '/gen-edittext.jpg', prompt: 'Edit to Image', model: 'SEEDREAM 4.5' },
-  { id: 3, src: '/gen-text2model.jpg', prompt: 'Text to Model', model: 'NANO BANANA' },
-  { id: 4, src: '/feature-generative.jpg', prompt: 'Generative Paint', model: 'FLUX 2 PRO' },
-]
+/* ───────────────────────────────────────────
+   Component
+   ─────────────────────────────────────────── */
 
 export default function ImageGeneratorDemo() {
   const sectionRef = useRef<HTMLElement>(null)
@@ -38,7 +45,15 @@ export default function ImageGeneratorDemo() {
   const [activeRatio, setActiveRatio] = useState('1:1')
   const [prompt, setPrompt] = useState(PRESETS[0])
   const [isGenerating, setIsGenerating] = useState(false)
-  const [showPreview, setShowPreview] = useState(false)
+
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null)
+  const [deductionInfo, setDeductionInfo] = useState<{
+    deducted: string
+    balance: string
+  } | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const { isAuthenticated } = useAuth()
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -58,12 +73,111 @@ export default function ImageGeneratorDemo() {
     return () => ctx.revert()
   }, [])
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     setIsGenerating(true)
-    setTimeout(() => {
+    setError(null)
+    setGeneratedImage(null)
+    setDeductionInfo(null)
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        setError('Please sign in to generate images.')
+        setIsGenerating(false)
+        return
+      }
+
+      const ratio = ASPECT_RATIOS.find((r) => r.id === activeRatio) || ASPECT_RATIOS[0]
+      const generationId = `gen_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+
+      const res = await fetch('/api/generate/proxy', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: BIZYAIR_GENERATE_URL,
+          headers: {
+            Authorization: 'Bearer ${BIZYAIR_API_KEY}',
+          },
+          data: {
+            prompt,
+            model: activeModel,
+            width: ratio.width,
+            height: ratio.height,
+          },
+          model_key: activeModel,
+          generation_id: generationId,
+        }),
+      })
+
+      const deductedCoins = res.headers.get('X-Deducted-Coins')
+      const balanceAfter = res.headers.get('X-Balance-After')
+
+      if (res.status === 402) {
+        setError('Insufficient balance. Please top up your account.')
+        setIsGenerating(false)
+        return
+      }
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        setError(errData.error || `Request failed (HTTP ${res.status})`)
+        setIsGenerating(false)
+        return
+      }
+
+      // Parse response — BizyAir may return JSON (URL) or image binary
+      const contentType = res.headers.get('content-type') || ''
+      let imageUrl: string | null = null
+
+      if (contentType.includes('application/json')) {
+        const data = await res.json()
+        imageUrl =
+          data.image_url ??
+          data.url ??
+          data.data?.[0]?.url ??
+          data.output?.[0] ??
+          null
+      } else if (contentType.includes('image/')) {
+        const blob = await res.blob()
+        imageUrl = URL.createObjectURL(blob)
+      } else {
+        // Fallback: try JSON, otherwise treat as blob
+        const text = await res.text()
+        try {
+          const data = JSON.parse(text)
+          imageUrl =
+            data.image_url ??
+            data.url ??
+            data.data?.[0]?.url ??
+            data.output?.[0] ??
+            null
+        } catch {
+          // Not JSON, ignore
+        }
+      }
+
+      if (!imageUrl) {
+        setError('Generation succeeded but no image URL was returned.')
+        setIsGenerating(false)
+        return
+      }
+
+      setGeneratedImage(imageUrl)
+
+      if (deductedCoins || balanceAfter) {
+        setDeductionInfo({
+          deducted: deductedCoins || '—',
+          balance: balanceAfter || '—',
+        })
+      }
+    } catch (err: any) {
+      setError(err.message || 'Network error. Please try again.')
+    } finally {
       setIsGenerating(false)
-      setShowPreview(true)
-    }, 2000)
+    }
   }
 
   return (
@@ -176,7 +290,7 @@ export default function ImageGeneratorDemo() {
               {/* Generate Button */}
               <button
                 onClick={handleGenerate}
-                disabled={isGenerating}
+                disabled={isGenerating || !prompt.trim()}
                 className="w-full bg-[#1E1E1E] text-white font-display font-normal text-sm uppercase tracking-[0.04em] py-4 hover:bg-black transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-60"
               >
                 {isGenerating ? (
@@ -191,12 +305,39 @@ export default function ImageGeneratorDemo() {
                   </>
                 )}
               </button>
+
+              {/* Error */}
+              {error && (
+                <div className="mt-4 flex items-start gap-2 text-[13px] text-[#CC0000]">
+                  <AlertCircle size={14} className="mt-0.5 flex-shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
+
+              {/* Deduction Info */}
+              {deductionInfo && (
+                <div className="mt-4 border border-[rgba(30,30,30,0.08)] bg-[#FAFAFA] p-3">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1.5 text-[12px] text-[#555555]">
+                      <Coins size={12} strokeWidth={2} />
+                      <span className="font-body">Deducted:</span>
+                      <span className="font-display text-[#1E1E1E]">{deductionInfo.deducted}</span>
+                    </div>
+                    <div className="w-px h-3 bg-[rgba(30,30,30,0.12)]" />
+                    <div className="flex items-center gap-1.5 text-[12px] text-[#555555]">
+                      <Wallet size={12} strokeWidth={2} />
+                      <span className="font-body">Balance:</span>
+                      <span className="font-display text-[#1E1E1E]">{deductionInfo.balance}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
           {/* RIGHT: Preview Area */}
           <div className="gen-preview flex-1 min-h-[500px]">
-            {!showPreview ? (
+            {!generatedImage ? (
               /* Empty state */
               <div className="w-full h-full min-h-[500px] border border-[rgba(30,30,30,0.08)] border-dashed flex flex-col items-center justify-center bg-[#FAFAFA]">
                 <div className="w-16 h-16 border border-[rgba(30,30,30,0.1)] flex items-center justify-center mb-4">
@@ -205,39 +346,51 @@ export default function ImageGeneratorDemo() {
                 <p className="text-mono text-[#CCCCCC] text-[11px] uppercase tracking-[0.15em]">
                   YOUR GENERATIONS WILL APPEAR HERE
                 </p>
+                {!isAuthenticated && (
+                  <p className="mt-2 text-[12px] text-[#999999] font-body">
+                    Sign in to start generating
+                  </p>
+                )}
               </div>
             ) : (
-              /* Generated images grid */
-              <div className="grid grid-cols-2 gap-4 h-full">
-                {SAMPLE_IMAGES.map((img, i) => (
-                  <div
-                    key={img.id}
-                    className="relative group overflow-hidden bg-[#F0F0F0] animate-fadeIn"
-                    style={{ animationDelay: `${i * 0.15}s` }}
-                  >
-                    <img
-                      src={img.src}
-                      alt={img.prompt}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                    {/* Hover overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-[rgba(0,0,0,0.7)] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
-                      <p className="text-white text-xs font-body mb-1">{img.prompt}</p>
-                      <p className="text-[#AAAAAA] text-[10px] font-mono uppercase tracking-[0.1em]">{img.model}</p>
-                      <div className="flex gap-3 mt-3">
-                        <button className="text-white/70 hover:text-white transition-colors">
-                          <Maximize2 size={14} />
-                        </button>
-                        <button className="text-white/70 hover:text-white transition-colors">
-                          <RefreshCw size={14} />
-                        </button>
-                        <button className="text-white/70 hover:text-white transition-colors">
-                          <Download size={14} />
-                        </button>
-                      </div>
-                    </div>
+              /* Generated image */
+              <div className="relative w-full h-full min-h-[500px] bg-[#F0F0F0] overflow-hidden group">
+                <img
+                  src={generatedImage}
+                  alt="Generated"
+                  className="w-full h-full object-contain"
+                />
+                {/* Hover overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-[rgba(0,0,0,0.7)] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                  <p className="text-white text-xs font-body mb-1 line-clamp-2">{prompt}</p>
+                  <p className="text-[#AAAAAA] text-[10px] font-mono uppercase tracking-[0.1em]">
+                    {MODELS.find((m) => m.id === activeModel)?.name || activeModel}
+                  </p>
+                  <div className="flex gap-3 mt-3">
+                    <button
+                      onClick={() => window.open(generatedImage, '_blank')}
+                      className="text-white/70 hover:text-white transition-colors"
+                      title="Open in new tab"
+                    >
+                      <Maximize2 size={14} />
+                    </button>
+                    <a
+                      href={generatedImage}
+                      download={`thebigone-${Date.now()}.png`}
+                      className="text-white/70 hover:text-white transition-colors"
+                      title="Download"
+                    >
+                      <Download size={14} />
+                    </a>
+                    <button
+                      onClick={handleGenerate}
+                      className="text-white/70 hover:text-white transition-colors"
+                      title="Regenerate"
+                    >
+                      <RefreshCw size={14} />
+                    </button>
                   </div>
-                ))}
+                </div>
               </div>
             )}
           </div>
@@ -267,17 +420,6 @@ export default function ImageGeneratorDemo() {
           </div>
         </div>
       </div>
-
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: scale(0.95); }
-          to { opacity: 1; transform: scale(1); }
-        }
-        .animate-fadeIn {
-          animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-          opacity: 0;
-        }
-      `}</style>
     </section>
   )
 }

@@ -14,10 +14,10 @@ const PLANS = [
     priceYearly: 0,
     icon: Sparkles,
     popular: false,
-    cta: 'START FREE TRIAL',
+    cta: 'GET STARTED',
     features: [
-      '500 coins / month (~10-20 images, depending on model)',
-      'All 12 AI models (including GPT Image 2 & NanoBanana)',
+      '500 coins / month',
+      'All AI models (GPT Image 2, NanoBanana, Seedance 5.0（image）, LTX & more)',
       'Up to 4K resolution',
       'Image editing, inpainting & upscaling',
       'Character upscale & Anime upscale',
@@ -30,6 +30,7 @@ const PLANS = [
       'Priority queue',
       'Figma / Blender / Premiere plugins',
       'Batch processing',
+      'Video generation',
     ],
   },
   {
@@ -42,12 +43,14 @@ const PLANS = [
     popular: true,
     cta: 'GET STARTED',
     features: [
-      '15,000 coins / month (~250 images)',
-      'All 12 AI models (including GPT Image 2 & NanoBanana)',
+      '3,000 coins / month',
+      'All AI models (GPT Image 2, NanoBanana, Seedance 5.0（image）, LTX & more)',
       'Up to 4K resolution',
+      'Video generation (Seedance 5.0（image） / LTX)',
       'Advanced editing, inpainting & outpainting',
       'Character upscale & Anime upscale',
-      'Photoshop + Figma / Blender / Premiere early access',
+      'Photoshop plugin + Figma / Blender / Premiere (内测中)',
+      'Batch processing: Limited (5 images)',
       'Local history: unlimited (device only, not cloud)',
       '2× accelerated generation',
       'Commercial license',
@@ -69,12 +72,13 @@ const PLANS = [
     popular: false,
     cta: 'GET STARTED',
     features: [
-      '40,000 coins / month (~650 images)',
-      'All 12 AI models (including GPT Image 2 & NanoBanana)',
+      '8,000 coins / month',
+      'All AI models (GPT Image 2, NanoBanana, Seedance 5.0（image）, LTX & more)',
       'Up to 4K resolution',
-      'Full editing suite & batch processing',
+      'Video generation (Seedance 5.0（image） / LTX)',
+      'Full editing suite & batch processing (Unlimited)',
       'Character upscale & Anime upscale',
-      'Full plugin ecosystem: Photoshop / Figma / Blender / Premiere',
+      'Full plugin suite: PS / Figma / Blender / Premiere (内测中)',
       'Local history: unlimited (device only, not cloud)',
       '4× accelerated + priority queue',
       'Full commercial license',
@@ -112,6 +116,18 @@ const FAQ_ITEMS = [
   },
 ]
 
+function CoinTooltip({ popular }: { popular: boolean }) {
+  return (
+    <div className="group relative inline-block ml-1 align-middle">
+      <span className={`text-[11px] cursor-help ${popular ? 'text-[#888888]' : 'text-[#999999]'}`}>ⓘ</span>
+      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-[260px] p-3 bg-[#1E1E1E] text-white text-[11px] font-body leading-relaxed opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+        Coins are TheBigOne's unified credits. All models share the same coin balance. 1 CNY = 100 coins. Unused coins reset monthly.
+        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#1E1E1E]" />
+      </div>
+    </div>
+  )
+}
+
 export default function PricingPage() {
   const sectionRef = useRef<HTMLElement>(null)
   const [isYearly, setIsYearly] = useState(true)
@@ -130,6 +146,10 @@ export default function PricingPage() {
       gsap.fromTo('.pricing-card', { opacity: 0, y: 60 }, {
         opacity: 1, y: 0, duration: 0.8, ease: 'power4.out', stagger: 0.15,
         scrollTrigger: { trigger: '.pricing-cards', start: 'top 75%' },
+      })
+      gsap.fromTo('.model-pricing-block', { opacity: 0, y: 40 }, {
+        opacity: 1, y: 0, duration: 0.8, ease: 'power4.out',
+        scrollTrigger: { trigger: '.model-pricing-block', start: 'top 80%' },
       })
       gsap.fromTo('.pricing-faq', { opacity: 0, y: 40 }, {
         opacity: 1, y: 0, duration: 0.8, ease: 'power4.out',
@@ -200,7 +220,7 @@ export default function PricingPage() {
       </div>
 
       {/* Pricing Cards */}
-      <div className="pricing-cards container-main pb-24 lg:pb-32">
+      <div className="pricing-cards container-main pb-12 lg:pb-16">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
           {PLANS.map((plan) => {
             const Icon = plan.icon
@@ -250,7 +270,7 @@ export default function PricingPage() {
                     </div>
                     {isYearly && plan.priceYearly > 0 && (
                       <p className={`text-[11px] font-body mt-1 ${plan.popular ? 'text-[#888888]' : 'text-[#999999]'}`}>
-                        Billed annually (${plan.priceYearly}/year)
+                        Billed annually (${plan.priceYearly}/year) · Save 20%
                       </p>
                     )}
                   </div>
@@ -274,11 +294,21 @@ export default function PricingPage() {
                       INCLUDED
                     </p>
                     {plan.features.map((feature) => (
-                      <div key={feature} className="flex items-start gap-3">
-                        <Check size={14} strokeWidth={2} className={plan.popular ? 'text-white mt-0.5' : 'text-[#1E1E1E] mt-0.5'} />
-                        <span className={`text-[13px] font-body ${plan.popular ? 'text-[#DDDDDD]' : 'text-[#555555]'}`}>
-                          {feature}
-                        </span>
+                      <div key={feature}>
+                        <div className="flex items-start gap-3">
+                          <Check size={14} strokeWidth={2} className={plan.popular ? 'text-white mt-0.5' : 'text-[#1E1E1E] mt-0.5'} />
+                          <div className="flex items-center flex-wrap">
+                            <span className={`text-[13px] font-body ${plan.popular ? 'text-[#DDDDDD]' : 'text-[#555555]'}`}>
+                              {feature}
+                            </span>
+                            {feature.includes('coins / month') && <CoinTooltip popular={plan.popular} />}
+                          </div>
+                        </div>
+                        {feature.includes('Local history') && (
+                          <p className={`text-[11px] font-body mt-1 ml-[26px] ${plan.popular ? 'text-[#888888]' : 'text-[#999999]'}`}>
+                            All history is stored locally on your device. No cloud upload. Clearing browser cache or uninstalling the plugin will erase history.
+                          </p>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -327,22 +357,23 @@ export default function PricingPage() {
               </thead>
               <tbody>
                 {[
-                  ['Monthly Coins', '500', '15,000', '40,000'],
-                  ['Approx. Images', '~10-20', '~250', '~650'],
-                  ['AI Models', '12', '12', '12'],
-                  ['Max Resolution', 'Up to 4K', 'Up to 4K', 'Up to 4K'],
-                  ['Commercial License', '—', '✓', '✓'],
-                  ['Image Editing & Inpainting', 'Basic', 'Advanced + Outpainting', 'Full Suite'],
-                  ['Upscaling', 'Character + Anime', 'Character + Anime', 'Character + Anime'],
-                  ['Batch Processing', '—', '—', '✓'],
-                  ['Generation Speed', 'Standard', '2× Accelerated', '4× + Priority'],
-                  ['Photoshop Plugin', '✓', '✓', '✓'],
-                  ['Figma / Blender / Premiere', '—', 'Early Access', '✓'],
-                  ['Local History', 'Unlimited', 'Unlimited', 'Unlimited'],
-                  ['Cloud History', '—', '—', '—'],
-                  ['Team Management', '—', '—', 'Coming Soon'],
-                  ['SSO / SAML', '—', '—', 'Coming Soon'],
-                  ['Support', 'Community', 'Email', 'Priority'],
+                  ['月费', '$0 / 月', '$15 / 月', '$39 / 月'],
+                  ['每月金币', '500', '3,000', '8,000'],
+                  ['AI 模型', '全部', '全部', '全部'],
+                  ['最高分辨率', '4K', '4K', '4K'],
+                  ['视频生成', '—', '✓', '✓'],
+                  ['商用授权', '—', '✓', '✓'],
+                  ['图像编辑与修复', '基础', '高级 + 扩展', '完整套件'],
+                  ['放大功能', '人物 + 动漫', '人物 + 动漫', '人物 + 动漫'],
+                  ['批量处理', '—', 'Limited (5)', 'Unlimited'],
+                  ['生成速度', '标准队列', '2× 加速', '4× 加速 + 优先队列'],
+                  ['Photoshop 插件', '✓', '✓', '✓'],
+                  ['Figma / Blender / Premiere', '—', '内测中', '内测中'],
+                  ['本地历史记录', '无限', '无限', '无限'],
+                  ['云端历史记录', '—', '—', '—'],
+                  ['团队管理', '—', '—', '即将推出'],
+                  ['SSO / SAML', '—', '—', '即将推出'],
+                  ['客服支持', '社区', '邮件', '优先支持'],
                 ].map(([feature, free, pro, studio], i) => (
                   <tr key={feature} className={`border-b border-[rgba(30,30,30,0.06)] ${i % 2 === 0 ? 'bg-[rgba(30,30,30,0.01)]' : ''}`}>
                     <td className="py-4 px-4 text-[13px] font-body text-[#555555]">{feature}</td>
