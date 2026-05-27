@@ -181,9 +181,10 @@ export default function ApiKeyPage() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
       const { data, error } = await supabase
-        .from('usage_logs')
+        .from('balance_transactions')
         .select('*')
         .eq('user_id', session.user.id)
+        .eq('type', 'deduct')
         .order('created_at', { ascending: false })
         .limit(50)
       if (error) throw error
@@ -735,8 +736,8 @@ export default function ApiKeyPage() {
                   style={{ marginBottom: '64px', border: '1px solid rgba(30, 30, 30, 0.06)' }}>
                   {[
                     { label: 'TOTAL REQUESTS', value: usageLogs.length.toString() },
-                    { label: 'SUCCESS RATE', value: usageLogs.length > 0 ? `${Math.round((usageLogs.filter(l => l.status === 'SUCCESS').length / usageLogs.length) * 100)}%` : '--' },
-                    { label: 'TOTAL COST', value: usageLogs.length > 0 ? `$${usageLogs.reduce((sum, l) => sum + (l.cost || 0), 0).toFixed(2)}` : '--' },
+                    { label: 'SUCCESS RATE', value: usageLogs.length > 0 ? '100%' : '--' },
+                    { label: 'TOTAL COST', value: usageLogs.length > 0 ? `${usageLogs.reduce((sum, l) => sum + (Number(l.amount) || 0), 0)} coins` : '--' },
                   ].map((stat, i) => (
                     <div key={stat.label}
                       className="bg-white text-center"
@@ -828,7 +829,7 @@ export default function ApiKeyPage() {
 
                   <div style={{ border: '1px solid rgba(30, 30, 30, 0.06)' }}>
                     <div className="hidden md:grid bg-[#F5F5F5]" style={{ gridTemplateColumns: '2fr 1.5fr 1fr 1fr', padding: '16px 32px', gap: '16px' }}>
-                      {['TIME', 'MODEL', 'STATUS', 'COST'].map((h) => (
+                      {['TIME', 'MODEL', 'COINS', 'BALANCE'].map((h) => (
                         <span key={h} className="text-mono text-[#999999] text-[11px]">{h}</span>
                       ))}
                     </div>
@@ -860,17 +861,17 @@ export default function ApiKeyPage() {
                       >
                         <div className="md:hidden flex flex-wrap gap-2 mb-2">
                           <span className="text-body-xs text-[#666666]">{new Date(log.created_at).toLocaleString()}</span>
-                          <span className="text-body-xs text-[#888888]">{log.model || '—'}</span>
-                          <span className="text-mono text-[11px]" style={{ color: log.status === 'SUCCESS' ? '#1E1E1E' : '#999999' }}>{log.status}</span>
-                          <span className="text-body-xs text-[#999999]">${(log.cost || 0).toFixed(2)}</span>
+                          <span className="text-body-xs text-[#888888]">{log.model_key || '—'}</span>
+                          <span className="text-mono text-[11px] text-[#1E1E1E]">{Number(log.amount || 0)} coins</span>
+                          <span className="text-body-xs text-[#999999]">{Number(log.balance_after || 0).toFixed(0)}</span>
                         </div>
                         <div className="hidden md:contents">
                           <span className="text-body-xs text-[#666666]">{new Date(log.created_at).toLocaleString()}</span>
-                          <span className="text-mono text-[12px] text-[#1E1E1E]">{log.model || '—'}</span>
-                          <span className="text-mono text-[11px]" style={{ color: log.status === 'SUCCESS' ? '#1E1E1E' : '#999999' }}>
-                            {log.status}
+                          <span className="text-mono text-[12px] text-[#1E1E1E]">{log.model_key || '—'}</span>
+                          <span className="text-mono text-[11px] text-[#1E1E1E]">
+                            {Number(log.amount || 0)} coins
                           </span>
-                          <span className="text-body-xs text-[#999999]">${(log.cost || 0).toFixed(2)}</span>
+                          <span className="text-body-xs text-[#999999]">{Number(log.balance_after || 0).toFixed(0)}</span>
                         </div>
                       </div>
                     ))}
