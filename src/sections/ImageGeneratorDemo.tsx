@@ -4,6 +4,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { Wand2, Image, Layers, Sparkles, RefreshCw, Download, Maximize2, AlertCircle, Coins, Wallet, Loader } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { MODEL_CONFIGS } from '../lib/model-configs'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -11,27 +12,33 @@ gsap.registerPlugin(ScrollTrigger)
    Models & Config
    ─────────────────────────────────────────── */
 
-const MODELS = [
-  { id: 'anima_turbo', name: 'ANIMA TURBO', desc: '10 coins • Fastest' },
-  { id: 'anima_base', name: 'ANIMA BASE', desc: '15 coins • Balanced' },
-  { id: 'z_image_base', name: 'Z-IMAGE-BASE', desc: '20 coins • Standard' },
-  { id: 'gpt_image_2', name: 'GPT IMAGE 2', desc: '35 coins • Highest quality' },
-  { id: 'nanobanana', name: 'NANOBANANA', desc: '50 coins • Advanced' },
-]
+// Extract text-to-image models from the shared config
+const TEXT2IMAGE_KEYS = Object.entries(MODEL_CONFIGS)
+  .filter(([, cfg]) => cfg.mode === 'text_to_image')
+  .map(([key]) => key)
 
-// BizyAir create endpoint (passed to backend proxy)
+const MODELS = TEXT2IMAGE_KEYS.map((key) => {
+  // Build a short description from the model key + known coins (from pricing doc)
+  const coinMap: Record<string, number> = {
+    anima_turbo: 10,
+    anima_base: 15,
+    z_image_base: 20,
+    gpt_image_2: 35,
+    nanobanana: 50,
+  }
+  const coins = coinMap[key] ?? 0
+  const name = key
+    .split('_')
+    .map((w) => w.toUpperCase())
+    .join(' ')
+  return {
+    id: key,
+    name,
+    desc: `${coins} coins`,
+  }
+})
+
 const BIZYAIR_CREATE_URL = 'https://api.bizyair.cn/w/v1/webapp/task/openapi/create'
-
-// TODO: Map each model_key to its actual BizyAir web_app_id.
-// Currently using a placeholder (54752) for all models.
-// Ask backend for the correct mapping per model.
-const MODEL_TO_WEB_APP_ID: Record<string, number> = {
-  anima_turbo: 54752,
-  anima_base: 54752,
-  z_image_base: 54752,
-  gpt_image_2: 54752,
-  nanobanana: 54752,
-}
 
 const ASPECT_RATIOS = [
   { id: '1:1', label: '1:1', width: 1024, height: 1024 },
@@ -51,20 +58,21 @@ const PRESETS = [
    Helpers
    ─────────────────────────────────────────── */
 
-function getWebAppId(modelKey: string): number {
-  return MODEL_TO_WEB_APP_ID[modelKey] ?? 54752
-}
+function getInputValues(modelKey: string, prompt: string, ratio: { id: string; width: number; height: number }) {
+  const cfg = MODEL_CONFIGS[modelKey]
+  if (!cfg) return {}
 
-function getInputValues(prompt: string, _ratio: { width: number; height: number }) {
-  // TODO: Adjust node IDs per actual BizyAir workflow.
-  // The keys below are placeholders based on backend's example.
-  return {
-    '36:CR Text.text': prompt,
-    '30:Seed_.seed': Math.floor(Math.random() * 1_000_000_000_000),
-    // If the workflow supports width/height, add them here.
-    // '81:EmptySD3LatentImage.width': ratio.width,
-    // '81:EmptySD3LatentImage.height': ratio.height,
-  }
+  const values: Record<string, any> = {}
+  const n = cfg.nodes
+
+  if (n.prompt) values[n.prompt] = prompt
+  if (n.seed) values[n.seed] = Math.floor(Math.random() * 1_000_000_000_000)
+  if (n.batchSize) values[n.batchSize] = 1
+  if (n.aspectRatio) values[n.aspectRatio] = ratio.id
+  if (n.width) values[n.width] = ratio.width
+  if (n.height) values[n.height] = ratio.height
+
+  return values
 }
 
 async function pollResult(
@@ -89,7 +97,6 @@ async function pollResult(
 
     const data = await res.json()
 
-    // BizyAir result schema varies; handle common shapes
     const status = data.status ?? data.task_status ?? data.state ?? ''
 
     if (status === 'Success' || status === 'success') {
@@ -108,7 +115,6 @@ async function pollResult(
       throw new Error(data.error || 'Generation failed on upstream.')
     }
 
-    // Queued / Running / pending → wait and retry
     await new Promise((r) => setTimeout(r, interval))
   }
 
@@ -121,7 +127,7 @@ async function pollResult(
 
 export default function ImageGeneratorDemo() {
   const sectionRef = useRef<HTMLElement>(null)
-  const [activeModel, setActiveModel] = useState(MODELS[0].id)
+  const [activeModel, setActiveModel] = useState(MODELS[0]?.id ?? '')
   const [activeRatio, setActiveRatio] = useState('1:1')
   const [prompt, setPrompt] = useState(PRESETS[0])
   const [isGenerating, setIsGenerating] = useState(false)
@@ -155,6 +161,8 @@ export default function ImageGeneratorDemo() {
   }, [])
 
   const handleGenerate = useCallback(async () => {
+    if (!activeModel) return
+
     setIsGenerating(true)
     setError(null)
     setGeneratedImage(null)
@@ -171,9 +179,8 @@ export default function ImageGeneratorDemo() {
 
       const ratio = ASPECT_RATIOS.find((r) => r.id === activeRatio) || ASPECT_RATIOS[0]
       const generationId = `gen_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-      const webAppId = getWebAppId(activeModel)
+      const cfg = MODEL_CONFIGS[activeModel]
 
-      // 1) Create task via backend proxy
       const createRes = await fetch('/api/generate/proxy', {
         method: 'POST',
         headers: {
@@ -186,8 +193,8 @@ export default function ImageGeneratorDemo() {
             Authorization: 'Bearer ${BIZYAIR_API_KEY}',
           },
           data: {
-            web_app_id: webAppId,
-            input_values: getInputValues(prompt, ratio),
+            web_app_id: cfg.webAppId,
+            input_values: getInputValues(activeModel, prompt, ratio),
           },
           model_key: activeModel,
           generation_id: generationId,
@@ -219,7 +226,6 @@ export default function ImageGeneratorDemo() {
         return
       }
 
-      // 2) Poll for result
       const imageUrl = await pollResult(requestId, session.access_token, setPollMsg)
       setGeneratedImage(imageUrl)
 
@@ -307,7 +313,6 @@ export default function ImageGeneratorDemo() {
                   className="w-full border border-[rgba(30,30,30,0.12)] bg-[#FAFAFA] p-4 text-[#1E1E1E] text-sm font-body resize-none focus:border-[#1E1E1E] focus:outline-none transition-colors"
                   placeholder="Describe your image..."
                 />
-                {/* Preset buttons */}
                 <div className="flex flex-wrap gap-2 mt-3">
                   {PRESETS.map((preset, i) => (
                     <button
@@ -395,7 +400,6 @@ export default function ImageGeneratorDemo() {
           {/* RIGHT: Preview Area */}
           <div className="gen-preview flex-1 min-h-[500px]">
             {!generatedImage ? (
-              /* Empty state */
               <div className="w-full h-full min-h-[500px] border border-[rgba(30,30,30,0.08)] border-dashed flex flex-col items-center justify-center bg-[#FAFAFA]">
                 <div className="w-16 h-16 border border-[rgba(30,30,30,0.1)] flex items-center justify-center mb-4">
                   {isGenerating ? (
@@ -414,14 +418,12 @@ export default function ImageGeneratorDemo() {
                 )}
               </div>
             ) : (
-              /* Generated image */
               <div className="relative w-full h-full min-h-[500px] bg-[#F0F0F0] overflow-hidden group">
                 <img
                   src={generatedImage}
                   alt="Generated"
                   className="w-full h-full object-contain"
                 />
-                {/* Hover overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-[rgba(0,0,0,0.7)] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
                   <p className="text-white text-xs font-body mb-1 line-clamp-2">{prompt}</p>
                   <p className="text-[#AAAAAA] text-[10px] font-mono uppercase tracking-[0.1em]">
