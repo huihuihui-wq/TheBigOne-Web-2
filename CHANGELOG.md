@@ -67,6 +67,39 @@
 
 ---
 
+## 2026-05-27 (晚)
+
+### ✅ 今日更新（第二轮）
+
+根据后端 SQL (`thebigone_pricing_update.sql`) 和定价文档 (`pricing_public_v1.1.md`) 同步前端：
+
+#### 1. Pricing 页面 — 四档套餐对齐
+- **新增 Lite 档位**：$9/月，2,000 金币（月付 only）
+- **Pro 调整**：$19/月，5,000 金币，年付 $180/年（Save 21%）
+- **Studio 调整**：$39/月，10,000 金币，年付 $390/年（Save 17%）
+- **布局调整**：Pricing Cards 从 3 列改为 `1/2/4` 列响应式布局
+- **Feature Comparison 表格**：增加 Lite 列，更新所有价格和金币数
+- **删除已下架模型文案**：移除所有 `Seedance`、`LTX` 相关提及（数据库已标记 `is_active = false`）
+- **删除 Video Generation feature**：因 LTX 已下架
+- **年付标签**：改为 `SAVE UP TO 21%`
+
+#### 2. ImageGeneratorDemo — 模型列表对齐数据库
+- MODELS 更新为数据库实际存在的 image 模型：
+  - `anima_turbo` (10 coins)
+  - `anima_base` (15 coins)
+  - `z_image_base` (20 coins)
+  - `gpt_image_2` (35 coins)
+  - `nanobanana` (50 coins)
+- 底部 stats：`4 AI Models` → `8 AI Models`
+
+### ⚠️ 新增待确认问题
+
+1. **BizyAir 端点 URL**：`BIZYAIR_GENERATE_URL` 仍为占位符 `'https://api.bizyair.cn/v1/images/generations'`，需替换为真实端点
+2. **Lite 功能边界**：文档未详细说明 Lite 的功能范围，当前假设与 Free 基本一致（仅金币多）
+3. **年付按钮行为**：Lite 当前设置为月付 only（`priceYearly: 0`），如需支持年付请告知
+
+---
+
 *Commit: `717de54`*
 *Branch: `main`*
 *Repo: `github.com:huihuihui-wq/TheBigOne-Web-2.git`*

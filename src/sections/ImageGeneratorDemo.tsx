@@ -12,9 +12,11 @@ gsap.registerPlugin(ScrollTrigger)
    ─────────────────────────────────────────── */
 
 const MODELS = [
-  { id: 'gpt_image_2', name: 'GPT IMAGE 2', desc: 'Highest quality' },
-  { id: 'nanobanana', name: 'NANO BANANA', desc: 'Fast generation' },
-  { id: 'flux_ultra', name: 'FLUX ULTRA', desc: 'Lightweight' },
+  { id: 'anima_turbo', name: 'ANIMA TURBO', desc: '10 coins • Fastest' },
+  { id: 'anima_base', name: 'ANIMA BASE', desc: '15 coins • Balanced' },
+  { id: 'z_image_base', name: 'Z-IMAGE-BASE', desc: '20 coins • Standard' },
+  { id: 'gpt_image_2', name: 'GPT IMAGE 2', desc: '35 coins • Highest quality' },
+  { id: 'nanobanana', name: 'NANOBANANA', desc: '50 coins • Advanced' },
 ]
 
 // TODO: Replace with actual BizyAir endpoint for each model if needed.
@@ -400,7 +402,7 @@ export default function ImageGeneratorDemo() {
         <div className="mt-16 pt-10 border-t border-[rgba(30,30,30,0.06)]">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             {[
-              { num: '4', label: 'AI Models', desc: 'Optimized for different needs' },
+              { num: '8', label: 'AI Models', desc: 'Optimized for different needs' },
               { num: '<3s', label: 'Avg. Speed', desc: 'Fast generation time' },
               { num: '2K', label: 'Resolution', desc: 'Up to 2048px output' },
               { num: '99%', label: 'Uptime', desc: 'Reliable service' },

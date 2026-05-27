@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { Check, Zap, Crown, ArrowRight, Sparkles } from 'lucide-react'
+import { Check, Zap, Crown, ArrowRight, Sparkles, Star } from 'lucide-react'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -17,7 +17,7 @@ const PLANS = [
     cta: 'GET STARTED',
     features: [
       '500 coins / month',
-      'All AI models (GPT Image 2, NanoBanana, Seedance 5.0（image）, LTX & more)',
+      'All AI models (GPT Image 2, NanoBanana & more)',
       'Up to 4K resolution',
       'Image editing, inpainting & upscaling',
       'Character upscale & Anime upscale',
@@ -30,23 +30,47 @@ const PLANS = [
       'Priority queue',
       'Figma / Blender / Premiere plugins',
       'Batch processing',
-      'Video generation',
+    ],
+  },
+  {
+    id: 'lite',
+    name: 'LITE',
+    subtitle: 'For light creators',
+    priceMonthly: 9,
+    priceYearly: 0,
+    icon: Star,
+    popular: false,
+    cta: 'GET STARTED',
+    features: [
+      '2,000 coins / month',
+      'All AI models (GPT Image 2, NanoBanana & more)',
+      'Up to 4K resolution',
+      'Image editing, inpainting & upscaling',
+      'Character upscale & Anime upscale',
+      'Photoshop plugin support',
+      'Local history: unlimited (device only, not cloud)',
+      'Standard generation speed',
+    ],
+    unavailable: [
+      'Commercial license',
+      'Priority queue',
+      'Figma / Blender / Premiere plugins',
+      'Batch processing',
     ],
   },
   {
     id: 'pro',
     name: 'PRO',
     subtitle: 'For professional creators',
-    priceMonthly: 15,
+    priceMonthly: 19,
     priceYearly: 180,
     icon: Zap,
     popular: true,
     cta: 'GET STARTED',
     features: [
-      '3,000 coins / month',
-      'All AI models (GPT Image 2, NanoBanana, Seedance 5.0（image）, LTX & more)',
+      '5,000 coins / month',
+      'All AI models (GPT Image 2, NanoBanana & more)',
       'Up to 4K resolution',
-      'Video generation (Seedance 5.0（image） / LTX)',
       'Advanced editing, inpainting & outpainting',
       'Character upscale & Anime upscale',
       'Photoshop plugin + Figma / Blender / Premiere (内测中)',
@@ -67,15 +91,14 @@ const PLANS = [
     name: 'STUDIO',
     subtitle: 'For teams and studios',
     priceMonthly: 39,
-    priceYearly: 468,
+    priceYearly: 390,
     icon: Crown,
     popular: false,
     cta: 'GET STARTED',
     features: [
-      '8,000 coins / month',
-      'All AI models (GPT Image 2, NanoBanana, Seedance 5.0（image）, LTX & more)',
+      '10,000 coins / month',
+      'All AI models (GPT Image 2, NanoBanana & more)',
       'Up to 4K resolution',
-      'Video generation (Seedance 5.0（image） / LTX)',
       'Full editing suite & batch processing (Unlimited)',
       'Character upscale & Anime upscale',
       'Full plugin suite: PS / Figma / Blender / Premiere (内测中)',
@@ -112,7 +135,7 @@ const FAQ_ITEMS = [
   },
   {
     q: 'Can I use generated images commercially?',
-    a: 'Pro and Studio plans include a full commercial license. Free plan images are for personal use only. Studio plans also include indemnification coverage.',
+    a: 'Pro and Studio plans include a full commercial license. Free and Lite plan images are for personal use only. Studio plans also include indemnification coverage.',
   },
 ]
 
@@ -147,10 +170,6 @@ export default function PricingPage() {
         opacity: 1, y: 0, duration: 0.8, ease: 'power4.out', stagger: 0.15,
         scrollTrigger: { trigger: '.pricing-cards', start: 'top 75%' },
       })
-      gsap.fromTo('.model-pricing-block', { opacity: 0, y: 40 }, {
-        opacity: 1, y: 0, duration: 0.8, ease: 'power4.out',
-        scrollTrigger: { trigger: '.model-pricing-block', start: 'top 80%' },
-      })
       gsap.fromTo('.pricing-faq', { opacity: 0, y: 40 }, {
         opacity: 1, y: 0, duration: 0.8, ease: 'power4.out',
         scrollTrigger: { trigger: '.pricing-faq', start: 'top 80%' },
@@ -160,7 +179,7 @@ export default function PricingPage() {
   }, [])
 
   const handleCheckout = (planId: string) => {
-    if (planId === 'free') {
+    if (planId === 'free' || planId === 'lite') {
       window.location.href = '/#/signup'
       return
     }
@@ -169,7 +188,7 @@ export default function PricingPage() {
       return
     }
     // Simulate Stripe checkout for Pro
-    alert(`Redirecting to Stripe Checkout...\n\nPlan: PRO (${isYearly ? 'Yearly' : 'Monthly'})\nPrice: $${isYearly ? '180' : '15'}/month\n\n(In production, this would redirect to Stripe Checkout)`)
+    alert(`Redirecting to Stripe Checkout...\n\nPlan: PRO (${isYearly ? 'Yearly' : 'Monthly'})\nPrice: $${isYearly ? '180' : '19'}/month\n\n(In production, this would redirect to Stripe Checkout)`)
   }
 
   return (
@@ -213,7 +232,7 @@ export default function PricingPage() {
               YEARLY
             </span>
             <span className="font-display text-[11px] uppercase tracking-[0.08em] text-white bg-[#1E1E1E] px-2 py-1">
-              SAVE 20%
+              SAVE UP TO 21%
             </span>
           </div>
         </div>
@@ -221,11 +240,17 @@ export default function PricingPage() {
 
       {/* Pricing Cards */}
       <div className="pricing-cards container-main pb-12 lg:pb-16">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
           {PLANS.map((plan) => {
             const Icon = plan.icon
             const price = isYearly ? plan.priceYearly : plan.priceMonthly
             const monthlyEquiv = plan.priceYearly > 0 ? Math.round(plan.priceYearly / 12) : 0
+            const savePct =
+              plan.id === 'pro'
+                ? '21%'
+                : plan.id === 'studio'
+                  ? '17%'
+                  : ''
             return (
               <div
                 key={plan.id}
@@ -270,7 +295,12 @@ export default function PricingPage() {
                     </div>
                     {isYearly && plan.priceYearly > 0 && (
                       <p className={`text-[11px] font-body mt-1 ${plan.popular ? 'text-[#888888]' : 'text-[#999999]'}`}>
-                        Billed annually (${plan.priceYearly}/year) · Save 20%
+                        Billed annually (${plan.priceYearly}/year) · Save {savePct}
+                      </p>
+                    )}
+                    {plan.priceYearly === 0 && plan.priceMonthly > 0 && (
+                      <p className={`text-[11px] font-body mt-1 ${plan.popular ? 'text-[#888888]' : 'text-[#999999]'}`}>
+                        Monthly billing only
                       </p>
                     )}
                   </div>
@@ -346,38 +376,39 @@ export default function PricingPage() {
           </h2>
 
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px]">
+            <table className="w-full min-w-[900px]">
               <thead>
                 <tr className="border-b border-[rgba(30,30,30,0.12)]">
                   <th className="text-left font-display text-[11px] uppercase tracking-[0.1em] text-[#999999] py-4 px-4">Feature</th>
                   <th className="text-center font-display text-[11px] uppercase tracking-[0.1em] text-[#999999] py-4 px-4">Free</th>
+                  <th className="text-center font-display text-[11px] uppercase tracking-[0.1em] text-[#999999] py-4 px-4">Lite</th>
                   <th className="text-center font-display text-[11px] uppercase tracking-[0.1em] text-[#999999] py-4 px-4 bg-[rgba(30,30,30,0.02)]">Pro</th>
                   <th className="text-center font-display text-[11px] uppercase tracking-[0.1em] text-[#999999] py-4 px-4">Studio</th>
                 </tr>
               </thead>
               <tbody>
                 {[
-                  ['月费', '$0 / 月', '$15 / 月', '$39 / 月'],
-                  ['每月金币', '500', '3,000', '8,000'],
-                  ['AI 模型', '全部', '全部', '全部'],
-                  ['最高分辨率', '4K', '4K', '4K'],
-                  ['视频生成', '—', '✓', '✓'],
-                  ['商用授权', '—', '✓', '✓'],
-                  ['图像编辑与修复', '基础', '高级 + 扩展', '完整套件'],
-                  ['放大功能', '人物 + 动漫', '人物 + 动漫', '人物 + 动漫'],
-                  ['批量处理', '—', 'Limited (5)', 'Unlimited'],
-                  ['生成速度', '标准队列', '2× 加速', '4× 加速 + 优先队列'],
-                  ['Photoshop 插件', '✓', '✓', '✓'],
-                  ['Figma / Blender / Premiere', '—', '内测中', '内测中'],
-                  ['本地历史记录', '无限', '无限', '无限'],
-                  ['云端历史记录', '—', '—', '—'],
-                  ['团队管理', '—', '—', '即将推出'],
-                  ['SSO / SAML', '—', '—', '即将推出'],
-                  ['客服支持', '社区', '邮件', '优先支持'],
-                ].map(([feature, free, pro, studio], i) => (
+                  ['Monthly Price', '$0 / month', '$9 / month', '$19 / month', '$39 / month'],
+                  ['Monthly Coins', '500', '2,000', '5,000', '10,000'],
+                  ['AI Models', 'All', 'All', 'All', 'All'],
+                  ['Max Resolution', 'Up to 4K', 'Up to 4K', 'Up to 4K', 'Up to 4K'],
+                  ['Commercial License', '—', '—', '✓', '✓'],
+                  ['Image Editing & Inpainting', 'Basic', 'Basic', 'Advanced + Outpainting', 'Full Suite'],
+                  ['Upscaling', 'Character + Anime', 'Character + Anime', 'Character + Anime', 'Character + Anime'],
+                  ['Batch Processing', '—', '—', 'Limited (5)', 'Unlimited'],
+                  ['Generation Speed', 'Standard', 'Standard', '2× Accelerated', '4× + Priority'],
+                  ['Photoshop Plugin', '✓', '✓', '✓', '✓'],
+                  ['Figma / Blender / Premiere', '—', '—', 'Beta', 'Beta'],
+                  ['Local History', 'Unlimited', 'Unlimited', 'Unlimited', 'Unlimited'],
+                  ['Cloud History', '—', '—', '—', '—'],
+                  ['Team Management', '—', '—', '—', 'Coming Soon'],
+                  ['SSO / SAML', '—', '—', '—', 'Coming Soon'],
+                  ['Support', 'Community', 'Community', 'Email', 'Priority'],
+                ].map(([feature, free, lite, pro, studio], i) => (
                   <tr key={feature} className={`border-b border-[rgba(30,30,30,0.06)] ${i % 2 === 0 ? 'bg-[rgba(30,30,30,0.01)]' : ''}`}>
                     <td className="py-4 px-4 text-[13px] font-body text-[#555555]">{feature}</td>
                     <td className="text-center py-4 px-4 text-[13px] font-body text-[#999999]">{free}</td>
+                    <td className="text-center py-4 px-4 text-[13px] font-body text-[#999999]">{lite}</td>
                     <td className="text-center py-4 px-4 text-[13px] font-body text-[#1E1E1E] bg-[rgba(30,30,30,0.02)]">{pro}</td>
                     <td className="text-center py-4 px-4 text-[13px] font-body text-[#1E1E1E]">{studio}</td>
                   </tr>
