@@ -8,6 +8,8 @@ import {
   Download,
   KeyRound,
   MousePointerClick,
+  Package,
+  Puzzle,
 } from 'lucide-react'
 
 gsap.registerPlugin(ScrollTrigger)
@@ -238,6 +240,57 @@ export default function GuidePage() {
           <p className="text-body text-[#666666] max-w-[560px]">
             Three steps from install to your first AI-generated image inside Photoshop.
           </p>
+        </div>
+      </section>
+
+          {/* Downloads */}
+      <section className="container-main pb-10 lg:pb-14">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
+          {/* CEP Runtime */}
+          <div className="bg-white border border-[rgba(30,30,30,0.1)] p-6 lg:p-8 flex items-center gap-5">
+            <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-[#1E1E1E] text-white">
+              <Package size={20} strokeWidth={1.5} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-display text-sm uppercase tracking-[0.04em] text-[#1E1E1E] mb-1">
+                1. Adobe CEP Runtime
+              </h3>
+              <p className="text-[12px] text-[#999999] font-body leading-relaxed">
+                Required for UXP plugins. Install once if you don't have it.
+              </p>
+            </div>
+            <a
+              href="/aescripts-desktop-apps-setup.exe"
+              download
+              className="flex-shrink-0 flex items-center gap-2 bg-[#1E1E1E] text-white font-display text-xs uppercase tracking-[0.04em] px-5 py-3 hover:bg-black transition-colors duration-300"
+            >
+              <Download size={14} strokeWidth={1.5} />
+              Download
+            </a>
+          </div>
+
+          {/* Plugin */}
+          <div className="bg-white border border-[rgba(30,30,30,0.1)] p-6 lg:p-8 flex items-center gap-5">
+            <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-[#1E1E1E] text-white">
+              <Puzzle size={20} strokeWidth={1.5} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-display text-sm uppercase tracking-[0.04em] text-[#1E1E1E] mb-1">
+                2. TheBigOne Plugin
+              </h3>
+              <p className="text-[12px] text-[#999999] font-body leading-relaxed">
+                Photoshop UXP plugin. Double-click to install after CEP.
+              </p>
+            </div>
+            <a
+              href="/thebigone-photoshop-plugin.ccx"
+              download
+              className="flex-shrink-0 flex items-center gap-2 bg-[#1E1E1E] text-white font-display text-xs uppercase tracking-[0.04em] px-5 py-3 hover:bg-black transition-colors duration-300"
+            >
+              <Download size={14} strokeWidth={1.5} />
+              Download
+            </a>
+          </div>
         </div>
       </section>
 
