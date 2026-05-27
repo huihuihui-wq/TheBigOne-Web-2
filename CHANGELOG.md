@@ -100,6 +100,37 @@
 
 ---
 
-*Commit: `717de54`*
+## 2026-05-27 (晚 II)
+
+### ✅ 今日更新（第三轮）
+
+根据后端端点测试和定价反馈同步：
+
+#### 1. Lite 年付价格更新
+- **Lite 年付**：$85/年（Save 21%），月均约 $7
+
+#### 2. ImageGeneratorDemo — 修正 BizyAir 端点 + 异步轮询
+- **端点修正**：`BIZYAIR_GENERATE_URL` 从假端点 `'https://api.bizyair.cn/v1/images/generations'` 改为真实端点 `'https://api.bizyair.cn/w/v1/webapp/task/openapi/create'`
+- **请求体格式**：`data` 从 `{ prompt, model, width, height }` 改为 BizyAir 原生格式 `{ web_app_id, input_values }`
+- **异步轮询**：新增 `pollResult` 辅助函数，实现 create → poll 的完整异步链路
+  - 每 2 秒轮询一次 `/api/generate/proxy/result?request_id=xxx`
+  - 最多轮询 30 次（60 秒超时）
+  - 支持状态：`Queued` / `Running` / `Success` / `Failed`
+- **UI 状态**：生成按钮显示轮询进度（`Polling result… (3/30)`）
+
+### ⚠️ 仍存在的问题
+
+1. **`web_app_id` 映射待确认**
+   - 当前所有模型都映射到同一个 `web_app_id: 54752`（后端提供的示例值）
+   - 需要后端确认每个 `model_key` 对应的真实 `web_app_id`
+
+2. **`input_values` 节点 ID 待确认**
+   - 当前使用 `'36:CR Text.text'` 和 `'30:Seed_.seed'` 作为占位符
+   - 不同工作流的节点 ID 不同，需要后端提供每个模型的正确参数映射
+
+---
+
+*Branch: `main`*
+*Repo: `github.com:huihuihui-wq/TheBigOne-Web-2.git`*
 *Branch: `main`*
 *Repo: `github.com:huihuihui-wq/TheBigOne-Web-2.git`*
