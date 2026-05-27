@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { Wand2, Image, Layers, Sparkles, RefreshCw, Download, Maximize2, AlertCircle, Coins, Wallet } from 'lucide-react'
+import { Wand2, Image, Layers, Sparkles, RefreshCw, Download, Maximize2, AlertCircle, Coins, Wallet, Loader } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -19,9 +19,19 @@ const MODELS = [
   { id: 'nanobanana', name: 'NANOBANANA', desc: '50 coins • Advanced' },
 ]
 
-// TODO: Replace with actual BizyAir endpoint for each model if needed.
-// The proxy server will forward to this URL.
-const BIZYAIR_GENERATE_URL = 'https://api.bizyair.cn/v1/images/generations'
+// BizyAir create endpoint (passed to backend proxy)
+const BIZYAIR_CREATE_URL = 'https://api.bizyair.cn/w/v1/webapp/task/openapi/create'
+
+// TODO: Map each model_key to its actual BizyAir web_app_id.
+// Currently using a placeholder (54752) for all models.
+// Ask backend for the correct mapping per model.
+const MODEL_TO_WEB_APP_ID: Record<string, number> = {
+  anima_turbo: 54752,
+  anima_base: 54752,
+  z_image_base: 54752,
+  gpt_image_2: 54752,
+  nanobanana: 54752,
+}
 
 const ASPECT_RATIOS = [
   { id: '1:1', label: '1:1', width: 1024, height: 1024 },
@@ -38,6 +48,74 @@ const PRESETS = [
 ]
 
 /* ───────────────────────────────────────────
+   Helpers
+   ─────────────────────────────────────────── */
+
+function getWebAppId(modelKey: string): number {
+  return MODEL_TO_WEB_APP_ID[modelKey] ?? 54752
+}
+
+function getInputValues(prompt: string, _ratio: { width: number; height: number }) {
+  // TODO: Adjust node IDs per actual BizyAir workflow.
+  // The keys below are placeholders based on backend's example.
+  return {
+    '36:CR Text.text': prompt,
+    '30:Seed_.seed': Math.floor(Math.random() * 1_000_000_000_000),
+    // If the workflow supports width/height, add them here.
+    // '81:EmptySD3LatentImage.width': ratio.width,
+    // '81:EmptySD3LatentImage.height': ratio.height,
+  }
+}
+
+async function pollResult(
+  requestId: string,
+  token: string,
+  onProgress: (msg: string) => void
+): Promise<string> {
+  const maxAttempts = 30
+  const interval = 2000
+
+  for (let i = 0; i < maxAttempts; i++) {
+    onProgress(`Polling result… (${i + 1}/${maxAttempts})`)
+
+    const res = await fetch(`/api/generate/proxy/result?request_id=${encodeURIComponent(requestId)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.error || `Poll failed (HTTP ${res.status})`)
+    }
+
+    const data = await res.json()
+
+    // BizyAir result schema varies; handle common shapes
+    const status = data.status ?? data.task_status ?? data.state ?? ''
+
+    if (status === 'Success' || status === 'success') {
+      const url =
+        data.outputs?.[0] ??
+        data.output?.[0] ??
+        data.image_url ??
+        data.url ??
+        data.data?.[0]?.url ??
+        null
+      if (url) return url
+      throw new Error('Task succeeded but no image URL found.')
+    }
+
+    if (status === 'Failed' || status === 'failed' || status === 'Error') {
+      throw new Error(data.error || 'Generation failed on upstream.')
+    }
+
+    // Queued / Running / pending → wait and retry
+    await new Promise((r) => setTimeout(r, interval))
+  }
+
+  throw new Error('Polling timed out. Please check again later.')
+}
+
+/* ───────────────────────────────────────────
    Component
    ─────────────────────────────────────────── */
 
@@ -47,6 +125,7 @@ export default function ImageGeneratorDemo() {
   const [activeRatio, setActiveRatio] = useState('1:1')
   const [prompt, setPrompt] = useState(PRESETS[0])
   const [isGenerating, setIsGenerating] = useState(false)
+  const [pollMsg, setPollMsg] = useState<string | null>(null)
 
   const [generatedImage, setGeneratedImage] = useState<string | null>(null)
   const [deductionInfo, setDeductionInfo] = useState<{
@@ -75,11 +154,12 @@ export default function ImageGeneratorDemo() {
     return () => ctx.revert()
   }, [])
 
-  const handleGenerate = async () => {
+  const handleGenerate = useCallback(async () => {
     setIsGenerating(true)
     setError(null)
     setGeneratedImage(null)
     setDeductionInfo(null)
+    setPollMsg(null)
 
     try {
       const { data: { session } } = await supabase.auth.getSession()
@@ -91,82 +171,56 @@ export default function ImageGeneratorDemo() {
 
       const ratio = ASPECT_RATIOS.find((r) => r.id === activeRatio) || ASPECT_RATIOS[0]
       const generationId = `gen_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+      const webAppId = getWebAppId(activeModel)
 
-      const res = await fetch('/api/generate/proxy', {
+      // 1) Create task via backend proxy
+      const createRes = await fetch('/api/generate/proxy', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          url: BIZYAIR_GENERATE_URL,
+          url: BIZYAIR_CREATE_URL,
           headers: {
             Authorization: 'Bearer ${BIZYAIR_API_KEY}',
           },
           data: {
-            prompt,
-            model: activeModel,
-            width: ratio.width,
-            height: ratio.height,
+            web_app_id: webAppId,
+            input_values: getInputValues(prompt, ratio),
           },
           model_key: activeModel,
           generation_id: generationId,
         }),
       })
 
-      const deductedCoins = res.headers.get('X-Deducted-Coins')
-      const balanceAfter = res.headers.get('X-Balance-After')
+      const deductedCoins = createRes.headers.get('X-Deducted-Coins')
+      const balanceAfter = createRes.headers.get('X-Balance-After')
 
-      if (res.status === 402) {
+      if (createRes.status === 402) {
         setError('Insufficient balance. Please top up your account.')
         setIsGenerating(false)
         return
       }
 
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}))
-        setError(errData.error || `Request failed (HTTP ${res.status})`)
+      if (!createRes.ok) {
+        const errData = await createRes.json().catch(() => ({}))
+        setError(errData.error || `Request failed (HTTP ${createRes.status})`)
         setIsGenerating(false)
         return
       }
 
-      // Parse response — BizyAir may return JSON (URL) or image binary
-      const contentType = res.headers.get('content-type') || ''
-      let imageUrl: string | null = null
+      const createData = await createRes.json()
+      const requestId = createData.request_id ?? createData.task_id ?? createData.id ?? null
 
-      if (contentType.includes('application/json')) {
-        const data = await res.json()
-        imageUrl =
-          data.image_url ??
-          data.url ??
-          data.data?.[0]?.url ??
-          data.output?.[0] ??
-          null
-      } else if (contentType.includes('image/')) {
-        const blob = await res.blob()
-        imageUrl = URL.createObjectURL(blob)
-      } else {
-        // Fallback: try JSON, otherwise treat as blob
-        const text = await res.text()
-        try {
-          const data = JSON.parse(text)
-          imageUrl =
-            data.image_url ??
-            data.url ??
-            data.data?.[0]?.url ??
-            data.output?.[0] ??
-            null
-        } catch {
-          // Not JSON, ignore
-        }
-      }
-
-      if (!imageUrl) {
-        setError('Generation succeeded but no image URL was returned.')
+      if (!requestId) {
+        setError('Generation started but no request ID was returned.')
         setIsGenerating(false)
         return
       }
 
+      // 2) Poll for result
+      const imageUrl = await pollResult(requestId, session.access_token, setPollMsg)
       setGeneratedImage(imageUrl)
 
       if (deductedCoins || balanceAfter) {
@@ -179,8 +233,9 @@ export default function ImageGeneratorDemo() {
       setError(err.message || 'Network error. Please try again.')
     } finally {
       setIsGenerating(false)
+      setPollMsg(null)
     }
-  }
+  }, [activeModel, activeRatio, prompt])
 
   return (
     <section
@@ -298,7 +353,7 @@ export default function ImageGeneratorDemo() {
                 {isGenerating ? (
                   <>
                     <RefreshCw size={16} className="animate-spin" />
-                    GENERATING...
+                    {pollMsg || 'GENERATING...'}
                   </>
                 ) : (
                   <>
@@ -343,12 +398,16 @@ export default function ImageGeneratorDemo() {
               /* Empty state */
               <div className="w-full h-full min-h-[500px] border border-[rgba(30,30,30,0.08)] border-dashed flex flex-col items-center justify-center bg-[#FAFAFA]">
                 <div className="w-16 h-16 border border-[rgba(30,30,30,0.1)] flex items-center justify-center mb-4">
-                  <Image size={24} strokeWidth={1} className="text-[#CCCCCC]" />
+                  {isGenerating ? (
+                    <Loader size={24} className="animate-spin text-[#1E1E1E]" />
+                  ) : (
+                    <Image size={24} strokeWidth={1} className="text-[#CCCCCC]" />
+                  )}
                 </div>
                 <p className="text-mono text-[#CCCCCC] text-[11px] uppercase tracking-[0.15em]">
-                  YOUR GENERATIONS WILL APPEAR HERE
+                  {isGenerating ? (pollMsg || 'GENERATING...') : 'YOUR GENERATIONS WILL APPEAR HERE'}
                 </p>
-                {!isAuthenticated && (
+                {!isAuthenticated && !isGenerating && (
                   <p className="mt-2 text-[12px] text-[#999999] font-body">
                     Sign in to start generating
                   </p>

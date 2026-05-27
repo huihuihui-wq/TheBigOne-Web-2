@@ -37,7 +37,7 @@ const PLANS = [
     name: 'LITE',
     subtitle: 'For light creators',
     priceMonthly: 9,
-    priceYearly: 0,
+    priceYearly: 85,
     icon: Star,
     popular: false,
     cta: 'GET STARTED',
