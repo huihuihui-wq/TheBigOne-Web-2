@@ -78,6 +78,12 @@ export default function Hero() {
       tl.fromTo(conn.current, { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 1.0 }, 1.1)
       tl.fromTo(fluid.current, { opacity: 0 }, { opacity: 1, duration: 1.4 }, 0.6)
 
+      /* Text entrance fade-in */
+      tl.fromTo('.hero-label', { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.8 }, 1.6)
+      tl.fromTo('.hero-desc', { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.8 }, 1.9)
+      tl.fromTo('.hero-cta', { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.8 }, 2.0)
+      tl.fromTo('.hero-pills', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.8 }, 2.1)
+
       /* Scroll parallax - NO PIN, just scrub animations */
       const scrollCfg = {
         trigger: sectionRef.current,
@@ -91,13 +97,10 @@ export default function Hero() {
       gsap.to(conn.current, { scale: 1.8, opacity: 0.5, scrollTrigger: scrollCfg })
       gsap.to('.hero-vignette', { opacity: 1, scrollTrigger: scrollCfg })
 
-      /* Text fades out on scroll */
+      /* Text fades out on scroll (only title/subtitle/label, keep desc/cta/download visible) */
       gsap.to('.hero-label', { y: -60, opacity: 0, scrollTrigger: scrollCfg })
       gsap.to('.hero-title', { y: -80, opacity: 0, scale: 0.9, scrollTrigger: scrollCfg })
       gsap.to('.hero-subtitle', { y: -100, opacity: 0, scrollTrigger: scrollCfg })
-      gsap.to('.hero-desc', { y: -120, opacity: 0, scrollTrigger: scrollCfg })
-      gsap.to('.hero-cta', { y: -140, opacity: 0, scrollTrigger: scrollCfg })
-      gsap.to('.hero-pills', { y: -160, opacity: 0, scrollTrigger: scrollCfg })
     }, sectionRef)
 
     return () => ctx.revert()
@@ -154,10 +157,10 @@ export default function Hero() {
           </div>
           <div className="hero-cta flex flex-col sm:flex-row items-center gap-4 justify-center pointer-events-auto relative" style={{ opacity: 0, zIndex: 15 }}>
             <button
-              onClick={() => window.location.hash = '#/generator-demo'}
+              onClick={() => window.location.hash = '#/guide'}
               className="bg-[#1E1E1E] text-white font-display font-normal text-sm uppercase tracking-[0.04em] px-10 py-4 hover:bg-black hover:scale-[1.02] transition-all duration-300 pointer-events-auto"
             >
-              TRY NOW
+              DOWNLOAD NOW
             </button>
             <button
               onClick={() => window.location.hash = '#/api-key'}

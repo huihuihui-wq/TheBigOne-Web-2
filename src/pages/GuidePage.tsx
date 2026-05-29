@@ -260,12 +260,13 @@ export default function GuidePage() {
               </p>
             </div>
             <a
-              href="/aescripts-desktop-apps-setup.exe"
-              download
+              href="https://aescripts.com/learn/post/zxp-installer"
+              target="_blank"
+              rel="noopener noreferrer"
               className="flex-shrink-0 flex items-center gap-2 bg-[#1E1E1E] text-white font-display text-xs uppercase tracking-[0.04em] px-5 py-3 hover:bg-black transition-colors duration-300"
             >
               <Download size={14} strokeWidth={1.5} />
-              Download
+              Get Installer (Win / Mac)
             </a>
           </div>
 
@@ -279,17 +280,78 @@ export default function GuidePage() {
                 2. TheBigOne Plugin
               </h3>
               <p className="text-[12px] text-[#999999] font-body leading-relaxed">
-                Photoshop UXP plugin. Double-click to install after CEP.
+                Photoshop UXP plugin. Two ways to install.
               </p>
             </div>
             <a
-              href="/thebigone-photoshop-plugin.ccx"
+              href="/com.huihuihui_4.uxp_PS-v24.ccx"
               download
               className="flex-shrink-0 flex items-center gap-2 bg-[#1E1E1E] text-white font-display text-xs uppercase tracking-[0.04em] px-5 py-3 hover:bg-black transition-colors duration-300"
             >
               <Download size={14} strokeWidth={1.5} />
-              Download
+              Download .ccx
             </a>
+          </div>
+        </div>
+
+        {/* Installation Guide */}
+        <div className="mt-6 bg-white border border-[rgba(30,30,30,0.1)] p-6 lg:p-8">
+          <h3 className="font-display text-sm uppercase tracking-[0.04em] text-[#1E1E1E] mb-5">
+            Installation Guide
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+            {/* Method 1 */}
+            <div>
+              <h4 className="font-display text-xs uppercase tracking-[0.06em] text-[#1E1E1E] mb-3 flex items-center gap-2">
+                <span className="w-5 h-5 flex items-center justify-center bg-[#1E1E1E] text-white text-[10px]">1</span>
+                Double-Click Install (Recommended)
+              </h4>
+              <ol className="space-y-2 text-body-sm text-[#666666] leading-relaxed list-decimal list-inside">
+                <li>Download and install <strong>Adobe CEP Runtime</strong> above (one-time only).</li>
+                <li>Download <strong>com.huihuihui_4.uxp_PS-v24.ccx</strong>.</li>
+                <li>Double-click the <code className="bg-[#F5F5F5] px-1.5 py-0.5 text-[11px]">.ccx</code> file — Photoshop will auto-install it.</li>
+                <li>Restart Photoshop, then open <strong>Window &gt; Extensions &gt; ComfyUI_Photoshop</strong>.</li>
+              </ol>
+            </div>
+
+            {/* Method 2 */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-display text-xs uppercase tracking-[0.06em] text-[#1E1E1E] flex items-center gap-2">
+                  <span className="w-5 h-5 flex items-center justify-center bg-[#1E1E1E] text-white text-[10px]">2</span>
+                  Manual Extract (ZIP)
+                </h4>
+                <a
+                  href="/com.huihuihui_4.uxp_PS-v24.zip"
+                  download
+                  className="flex items-center gap-2 border border-[rgba(30,30,30,0.2)] text-[#1E1E1E] font-display text-[11px] uppercase tracking-[0.04em] px-4 py-2 hover:bg-[rgba(30,30,30,0.04)] transition-colors duration-300"
+                >
+                  <Download size={12} strokeWidth={1.5} />
+                  Download .zip
+                </a>
+              </div>
+              <ol className="space-y-2 text-body-sm text-[#666666] leading-relaxed list-decimal list-inside">
+                <li>Download <strong>com.huihuihui_4.uxp_PS-v24.zip</strong> and extract it.</li>
+                <li>Move the extracted folder to your Photoshop CEP extensions path:</li>
+              </ol>
+              <div className="mt-3 space-y-2">
+                <div className="bg-[#F5F5F5] p-3">
+                  <p className="text-[11px] text-[#999999] uppercase tracking-[0.06em] mb-1">Windows</p>
+                  <code className="text-[11px] text-[#1E1E1E] font-mono break-all">
+                    C:\Users\&lt;User&gt;\AppData\Roaming\Adobe\CEP\extensions\
+                  </code>
+                </div>
+                <div className="bg-[#F5F5F5] p-3">
+                  <p className="text-[11px] text-[#999999] uppercase tracking-[0.06em] mb-1">macOS</p>
+                  <code className="text-[11px] text-[#1E1E1E] font-mono break-all">
+                    ~/Library/Application Support/Adobe/CEP/extensions/
+                  </code>
+                </div>
+              </div>
+              <p className="mt-2 text-body-sm text-[#666666] leading-relaxed">
+                Restart Photoshop, then open <strong>Window &gt; Extensions &gt; ComfyUI_Photoshop</strong>.
+              </p>
+            </div>
           </div>
         </div>
       </section>

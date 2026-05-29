@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { Check, Zap, Crown, ArrowRight, Sparkles, Star } from 'lucide-react'
+import { Check, Zap, Crown, ArrowRight, Sparkles } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
+import StripeCheckoutModal from '../components/StripeCheckoutModal'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -33,32 +35,6 @@ const PLANS = [
     ],
   },
   {
-    id: 'lite',
-    name: 'LITE',
-    subtitle: 'For light creators',
-    priceMonthly: 9,
-    priceYearly: 85,
-    icon: Star,
-    popular: false,
-    cta: 'GET STARTED',
-    features: [
-      '2,000 coins / month',
-      'All AI models (GPT Image 2, NanoBanana & more)',
-      'Up to 4K resolution',
-      'Image editing, inpainting & upscaling',
-      'Character upscale & Anime upscale',
-      'Photoshop plugin support',
-      'Local history: unlimited (device only, not cloud)',
-      'Standard generation speed',
-    ],
-    unavailable: [
-      'Commercial license',
-      'Priority queue',
-      'Figma / Blender / Premiere plugins',
-      'Batch processing',
-    ],
-  },
-  {
     id: 'pro',
     name: 'PRO',
     subtitle: 'For professional creators',
@@ -73,7 +49,7 @@ const PLANS = [
       'Up to 4K resolution',
       'Advanced editing, inpainting & outpainting',
       'Character upscale & Anime upscale',
-      'Photoshop plugin + Figma / Blender / Premiere (内测中)',
+      'Photoshop plugin + Figma / Blender / Premiere',
       'Batch processing: Limited (5 images)',
       'Local history: unlimited (device only, not cloud)',
       '2× accelerated generation',
@@ -101,7 +77,7 @@ const PLANS = [
       'Up to 4K resolution',
       'Full editing suite & batch processing (Unlimited)',
       'Character upscale & Anime upscale',
-      'Full plugin suite: PS / Figma / Blender / Premiere (内测中)',
+      'Full plugin suite: PS / Figma / Blender / Premiere',
       'Local history: unlimited (device only, not cloud)',
       '4× accelerated + priority queue',
       'Full commercial license',
@@ -118,8 +94,8 @@ const FAQ_ITEMS = [
     a: 'Yes. You can upgrade, downgrade, or cancel your plan at any time. When upgrading, you will be charged the prorated difference. When downgrading, the new rate applies at the next billing cycle.',
   },
   {
-    q: 'What payment methods do you accept?',
-    a: 'We accept all major credit cards (Visa, Mastercard, American Express), PayPal, and bank transfers for Studio plans. All transactions are processed securely via Stripe.',
+    q: 'What payment methods do we accept?',
+    a: 'We accept all major credit cards (Visa, Mastercard, American Express), Apple Pay, Google Pay, and Link. All transactions are processed securely via Stripe.',
   },
   {
     q: 'Is there a free trial for paid plans?',
@@ -135,15 +111,15 @@ const FAQ_ITEMS = [
   },
   {
     q: 'Can I use generated images commercially?',
-    a: 'Pro and Studio plans include a full commercial license. Free and Lite plan images are for personal use only. Studio plans also include indemnification coverage.',
+    a: 'Pro and Studio plans include a full commercial license. Free plan images are for personal use only. Studio plans also include indemnification coverage.',
   },
 ]
 
 function CoinTooltip({ popular }: { popular: boolean }) {
   return (
-    <div className="group relative inline-block ml-1 align-middle">
-      <span className={`text-[11px] cursor-help ${popular ? 'text-[#888888]' : 'text-[#999999]'}`}>ⓘ</span>
-      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-[260px] p-3 bg-[#1E1E1E] text-white text-[11px] font-body leading-relaxed opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+    <div className="group/tooltip relative inline-block ml-1 align-middle">
+      <span className={`text-[11px] cursor-help transition-colors ${popular ? 'text-[#888888]' : 'text-[#999999] group-hover/card:text-[#888888]'}`}>ⓘ</span>
+      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-[260px] p-3 bg-[#1E1E1E] text-white text-[11px] font-body leading-relaxed opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all duration-200 z-50 pointer-events-none">
         Coins are TheBigOne's unified credits. All models share the same coin balance. 1 CNY = 100 coins. Unused coins reset monthly.
         <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#1E1E1E]" />
       </div>
@@ -155,6 +131,8 @@ export default function PricingPage() {
   const sectionRef = useRef<HTMLElement>(null)
   const [isYearly, setIsYearly] = useState(true)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
+  const [modalPlan, setModalPlan] = useState<{ id: 'pro'; interval: 'monthly' | 'yearly' } | null>(null)
+  const { isAuthenticated } = useAuth()
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -178,17 +156,32 @@ export default function PricingPage() {
     return () => ctx.revert()
   }, [])
 
-  const handleCheckout = (planId: string) => {
-    if (planId === 'free' || planId === 'lite') {
+  const handleCheckout = async (planId: string) => {
+    // Free plan: redirect to signup
+    if (planId === 'free') {
       window.location.href = '/#/signup'
       return
     }
+
+    // Studio: contact sales
     if (planId === 'studio') {
       window.open('mailto:sales@thebigone.ai?subject=Studio Plan Inquiry', '_blank')
       return
     }
-    // Simulate Stripe checkout for Pro
-    alert(`Redirecting to Stripe Checkout...\n\nPlan: PRO (${isYearly ? 'Yearly' : 'Monthly'})\nPrice: $${isYearly ? '180' : '19'}/month\n\n(In production, this would redirect to Stripe Checkout)`)
+
+    // Paid plans: open embedded checkout modal
+    if (planId === 'pro') {
+      if (!isAuthenticated) {
+        window.location.href = '/#/signup'
+        return
+      }
+
+      setModalPlan({
+        id: 'pro',
+        interval: isYearly ? 'yearly' : 'monthly',
+      })
+      return
+    }
   }
 
   return (
@@ -240,7 +233,7 @@ export default function PricingPage() {
 
       {/* Pricing Cards */}
       <div className="pricing-cards container-main pb-12 lg:pb-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
           {PLANS.map((plan) => {
             const Icon = plan.icon
             const price = isYearly ? plan.priceYearly : plan.priceMonthly
@@ -254,10 +247,10 @@ export default function PricingPage() {
             return (
               <div
                 key={plan.id}
-                className={`pricing-card relative border transition-all duration-300 ${
+                className={`pricing-card relative border transition-all duration-300 group/card ${
                   plan.popular
                     ? 'border-[#1E1E1E] bg-[#1E1E1E]'
-                    : 'border-[rgba(30,30,30,0.12)] bg-white hover:border-[rgba(30,30,30,0.3)]'
+                    : 'border-[rgba(30,30,30,0.12)] bg-white hover:border-[#1E1E1E] hover:bg-[#1E1E1E]'
                 }`}
               >
                 {/* Popular badge */}
@@ -270,14 +263,14 @@ export default function PricingPage() {
                 <div className="p-8 lg:p-10">
                   {/* Icon + Name */}
                   <div className="flex items-center gap-3 mb-6">
-                    <div className={`w-10 h-10 flex items-center justify-center ${plan.popular ? 'bg-white/10' : 'bg-[rgba(30,30,30,0.04)]'}`}>
-                      <Icon size={20} strokeWidth={1.5} className={plan.popular ? 'text-white' : 'text-[#1E1E1E]'} />
+                    <div className={`w-10 h-10 flex items-center justify-center transition-colors ${plan.popular ? 'bg-white/10' : 'bg-[rgba(30,30,30,0.04)] group-hover/card:bg-white/10'}`}>
+                      <Icon size={20} strokeWidth={1.5} className={`transition-colors ${plan.popular ? 'text-white' : 'text-[#1E1E1E] group-hover/card:text-white'}`} />
                     </div>
                     <div>
-                      <h3 className={`font-display text-lg uppercase tracking-[0.08em] ${plan.popular ? 'text-white' : 'text-[#1E1E1E]'}`}>
+                      <h3 className={`font-display text-lg uppercase tracking-[0.08em] transition-colors ${plan.popular ? 'text-white' : 'text-[#1E1E1E] group-hover/card:text-white'}`}>
                         {plan.name}
                       </h3>
-                      <p className={`text-[12px] font-body ${plan.popular ? 'text-[#AAAAAA]' : 'text-[#999999]'}`}>
+                      <p className={`text-[12px] font-body transition-colors ${plan.popular ? 'text-[#AAAAAA]' : 'text-[#999999] group-hover/card:text-[#AAAAAA]'}`}>
                         {plan.subtitle}
                       </p>
                     </div>
@@ -286,20 +279,20 @@ export default function PricingPage() {
                   {/* Price */}
                   <div className="mb-8">
                     <div className="flex items-baseline gap-1">
-                      <span className={`font-display text-[48px] font-extralight ${plan.popular ? 'text-white' : 'text-[#1E1E1E]'}`}>
+                      <span className={`font-display text-[48px] font-extralight transition-colors ${plan.popular ? 'text-white' : 'text-[#1E1E1E] group-hover/card:text-white'}`}>
                         ${isYearly && plan.priceYearly > 0 ? monthlyEquiv : price}
                       </span>
-                      <span className={`font-body text-sm ${plan.popular ? 'text-[#AAAAAA]' : 'text-[#999999]'}`}>
+                      <span className={`font-body text-sm transition-colors ${plan.popular ? 'text-[#AAAAAA]' : 'text-[#999999] group-hover/card:text-[#AAAAAA]'}`}>
                         /month
                       </span>
                     </div>
                     {isYearly && plan.priceYearly > 0 && (
-                      <p className={`text-[11px] font-body mt-1 ${plan.popular ? 'text-[#888888]' : 'text-[#999999]'}`}>
+                      <p className={`text-[11px] font-body mt-1 transition-colors ${plan.popular ? 'text-[#888888]' : 'text-[#999999] group-hover/card:text-[#888888]'}`}>
                         Billed annually (${plan.priceYearly}/year) · Save {savePct}
                       </p>
                     )}
                     {plan.priceYearly === 0 && plan.priceMonthly > 0 && (
-                      <p className={`text-[11px] font-body mt-1 ${plan.popular ? 'text-[#888888]' : 'text-[#999999]'}`}>
+                      <p className={`text-[11px] font-body mt-1 transition-colors ${plan.popular ? 'text-[#888888]' : 'text-[#999999] group-hover/card:text-[#888888]'}`}>
                         Monthly billing only
                       </p>
                     )}
@@ -311,7 +304,7 @@ export default function PricingPage() {
                     className={`w-full font-display text-sm uppercase tracking-[0.04em] py-4 transition-all duration-300 flex items-center justify-center gap-2 mb-8 ${
                       plan.popular
                         ? 'bg-white text-[#1E1E1E] hover:bg-[#F0F0F0]'
-                        : 'bg-[#1E1E1E] text-white hover:bg-black'
+                        : 'bg-[#1E1E1E] text-white hover:bg-black group-hover/card:bg-white group-hover/card:text-[#1E1E1E]'
                     }`}
                   >
                     {plan.cta}
@@ -320,22 +313,22 @@ export default function PricingPage() {
 
                   {/* Features */}
                   <div className="space-y-3">
-                    <p className={`font-display text-[11px] uppercase tracking-[0.1em] mb-4 ${plan.popular ? 'text-[#888888]' : 'text-[#999999]'}`}>
+                    <p className={`font-display text-[11px] uppercase tracking-[0.1em] mb-4 transition-colors ${plan.popular ? 'text-[#888888]' : 'text-[#999999] group-hover/card:text-[#888888]'}`}>
                       INCLUDED
                     </p>
                     {plan.features.map((feature) => (
                       <div key={feature}>
                         <div className="flex items-start gap-3">
-                          <Check size={14} strokeWidth={2} className={plan.popular ? 'text-white mt-0.5' : 'text-[#1E1E1E] mt-0.5'} />
+                          <Check size={14} strokeWidth={2} className={`mt-0.5 transition-colors ${plan.popular ? 'text-white' : 'text-[#1E1E1E] group-hover/card:text-white'}`} />
                           <div className="flex items-center flex-wrap">
-                            <span className={`text-[13px] font-body ${plan.popular ? 'text-[#DDDDDD]' : 'text-[#555555]'}`}>
+                            <span className={`text-[13px] font-body transition-colors ${plan.popular ? 'text-[#DDDDDD]' : 'text-[#555555] group-hover/card:text-[#DDDDDD]'}`}>
                               {feature}
                             </span>
                             {feature.includes('coins / month') && <CoinTooltip popular={plan.popular} />}
                           </div>
                         </div>
                         {feature.includes('Local history') && (
-                          <p className={`text-[11px] font-body mt-1 ml-[26px] ${plan.popular ? 'text-[#888888]' : 'text-[#999999]'}`}>
+                          <p className={`text-[11px] font-body mt-1 ml-[26px] transition-colors ${plan.popular ? 'text-[#888888]' : 'text-[#999999] group-hover/card:text-[#888888]'}`}>
                             All history is stored locally on your device. No cloud upload. Clearing browser cache or uninstalling the plugin will erase history.
                           </p>
                         )}
@@ -346,7 +339,7 @@ export default function PricingPage() {
                   {/* Unavailable features */}
                   {plan.unavailable.length > 0 && (
                     <div className="mt-6 pt-6 border-t border-[rgba(30,30,30,0.08)]">
-                      <p className={`font-display text-[11px] uppercase tracking-[0.1em] mb-4 ${plan.popular ? 'text-[#666666]' : 'text-[#BBBBBB]'}`}>
+                      <p className={`font-display text-[11px] uppercase tracking-[0.1em] mb-4 transition-colors ${plan.popular ? 'text-[#666666]' : 'text-[#BBBBBB] group-hover/card:text-[#666666]'}`}>
                         NOT INCLUDED
                       </p>
                       {plan.unavailable.map((feature) => (
@@ -381,34 +374,32 @@ export default function PricingPage() {
                 <tr className="border-b border-[rgba(30,30,30,0.12)]">
                   <th className="text-left font-display text-[11px] uppercase tracking-[0.1em] text-[#999999] py-4 px-4">Feature</th>
                   <th className="text-center font-display text-[11px] uppercase tracking-[0.1em] text-[#999999] py-4 px-4">Free</th>
-                  <th className="text-center font-display text-[11px] uppercase tracking-[0.1em] text-[#999999] py-4 px-4">Lite</th>
                   <th className="text-center font-display text-[11px] uppercase tracking-[0.1em] text-[#999999] py-4 px-4 bg-[rgba(30,30,30,0.02)]">Pro</th>
                   <th className="text-center font-display text-[11px] uppercase tracking-[0.1em] text-[#999999] py-4 px-4">Studio</th>
                 </tr>
               </thead>
               <tbody>
                 {[
-                  ['Monthly Price', '$0 / month', '$9 / month', '$19 / month', '$39 / month'],
-                  ['Monthly Coins', '500', '2,000', '5,000', '10,000'],
-                  ['AI Models', 'All', 'All', 'All', 'All'],
-                  ['Max Resolution', 'Up to 4K', 'Up to 4K', 'Up to 4K', 'Up to 4K'],
-                  ['Commercial License', '—', '—', '✓', '✓'],
-                  ['Image Editing & Inpainting', 'Basic', 'Basic', 'Advanced + Outpainting', 'Full Suite'],
-                  ['Upscaling', 'Character + Anime', 'Character + Anime', 'Character + Anime', 'Character + Anime'],
-                  ['Batch Processing', '—', '—', 'Limited (5)', 'Unlimited'],
-                  ['Generation Speed', 'Standard', 'Standard', '2× Accelerated', '4× + Priority'],
-                  ['Photoshop Plugin', '✓', '✓', '✓', '✓'],
-                  ['Figma / Blender / Premiere', '—', '—', 'Beta', 'Beta'],
-                  ['Local History', 'Unlimited', 'Unlimited', 'Unlimited', 'Unlimited'],
-                  ['Cloud History', '—', '—', '—', '—'],
-                  ['Team Management', '—', '—', '—', 'Coming Soon'],
-                  ['SSO / SAML', '—', '—', '—', 'Coming Soon'],
-                  ['Support', 'Community', 'Community', 'Email', 'Priority'],
-                ].map(([feature, free, lite, pro, studio], i) => (
+                  ['Monthly Price', '$0 / month', '$19 / month', '$39 / month'],
+                  ['Monthly Coins', '500', '5,000', '10,000'],
+                  ['AI Models', 'All', 'All', 'All'],
+                  ['Max Resolution', 'Up to 4K', 'Up to 4K', 'Up to 4K'],
+                  ['Commercial License', '—', '✓', '✓'],
+                  ['Image Editing & Inpainting', 'Basic', 'Advanced + Outpainting', 'Full Suite'],
+                  ['Upscaling', 'Character + Anime', 'Character + Anime', 'Character + Anime'],
+                  ['Batch Processing', '—', 'Limited (5)', 'Unlimited'],
+                  ['Generation Speed', 'Standard', '2× Accelerated', '4× + Priority'],
+                  ['Photoshop Plugin', '✓', '✓', '✓'],
+                  ['Figma / Blender / Premiere', '—', 'Beta', 'Beta'],
+                  ['Local History', 'Unlimited', 'Unlimited', 'Unlimited'],
+                  ['Cloud History', '—', '—', '—'],
+                  ['Team Management', '—', '—', 'Coming Soon'],
+                  ['SSO / SAML', '—', '—', 'Coming Soon'],
+                  ['Support', 'Community', 'Email', 'Priority'],
+                ].map(([feature, free, pro, studio], i) => (
                   <tr key={feature} className={`border-b border-[rgba(30,30,30,0.06)] ${i % 2 === 0 ? 'bg-[rgba(30,30,30,0.01)]' : ''}`}>
                     <td className="py-4 px-4 text-[13px] font-body text-[#555555]">{feature}</td>
                     <td className="text-center py-4 px-4 text-[13px] font-body text-[#999999]">{free}</td>
-                    <td className="text-center py-4 px-4 text-[13px] font-body text-[#999999]">{lite}</td>
                     <td className="text-center py-4 px-4 text-[13px] font-body text-[#1E1E1E] bg-[rgba(30,30,30,0.02)]">{pro}</td>
                     <td className="text-center py-4 px-4 text-[13px] font-body text-[#1E1E1E]">{studio}</td>
                   </tr>
@@ -487,6 +478,20 @@ export default function PricingPage() {
           </div>
         </div>
       </div>
+
+      {/* Stripe Embedded Checkout Modal */}
+      {modalPlan && (
+        <StripeCheckoutModal
+          isOpen={!!modalPlan}
+          onClose={() => setModalPlan(null)}
+          planId={modalPlan.id}
+          billingInterval={modalPlan.interval}
+          onComplete={() => {
+            // Optionally refresh subscription status or navigate
+            window.location.reload()
+          }}
+        />
+      )}
 
       {/* Organic shape decoration */}
       <div className="absolute pointer-events-none opacity-[0.03]" style={{ right: '5%', top: '20%', zIndex: 0 }}>
